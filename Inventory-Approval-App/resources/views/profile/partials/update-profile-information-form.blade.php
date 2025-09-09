@@ -13,7 +13,7 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
         @csrf
         @method('patch')
 
@@ -45,6 +45,21 @@
                     @endif
                 </div>
             @endif
+        </div>
+
+        <div class="mt-6">
+            <x-input-label for="photo" :value="__('Photo')" />
+            @if (Auth::user()->profile_photo_path)
+                <img src="{{ asset('storage/' . Auth::user()->profile_photo_path) }}" alt="Profile Photo" class="h-20 w-20 rounded-full object-cover mt-2">
+            @else
+                <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&color=7F9CF5&background=EBF4FF" alt="Profile Photo" class="h-20 w-20 rounded-full object-cover mt-2">
+            @endif
+        </div>
+
+        <div>
+            <x-input-label for="profile_photo" :value="__('New Photo')" />
+            <x-text-input id="profile_photo" name="profile_photo" type="file" class="mt-1 block w-full" />
+            <x-input-error class="mt-2" :messages="$errors->get('profile_photo')" />
         </div>
 
         <div class="flex items-center gap-4">
