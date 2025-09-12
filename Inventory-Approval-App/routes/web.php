@@ -3,6 +3,9 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SubmissionController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ApprovalController;
 use App\Models\User;
 
 Route::get('/', function () {
@@ -12,9 +15,7 @@ Route::get('/', function () {
 // Semua route yang butuh login kita masukkan ke dalam grup ini
 Route::middleware(['auth', 'verified'])->group(function () {
     // Halaman Home/Dashboard Utama
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Halaman Submission
     Route::get('/submission', [SubmissionController::class, 'index'])->name('submission'); // <-- NAMA DIPERBAIKI
@@ -28,9 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/submission/procure', [SubmissionController::class, 'storeProcure'])->name('submission.procure.store');
     
     // Halaman History
-    Route::get('/history', function () {
-        return view('history');
-    })->name('history');
+    Route::get('/history', [HistoryController::class, 'index'])->name('history');
 
     // Halaman Inventory
     Route::get('/inventory', function () {
@@ -51,6 +50,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Route untuk menampilkan detail submission
+    Route::get('/submission/{proposal_id}', [HistoryController::class, 'show'])->name('history.show');
+
+    // Route untuk Approval Page, dilindungi oleh middleware role
+    Route::get('/approval', [ApprovalController::class, 'index'])->name('approval')->middleware('has.approval.role');
+
+     // Route BARU untuk aksi "Act" oleh General Affair
+    Route::post('/approval/{proposal_id}/act', [ApprovalController::class, 'act'])->name('approval.act')->middleware('has.approval.role');
 });
 
 require __DIR__.'/auth.php';

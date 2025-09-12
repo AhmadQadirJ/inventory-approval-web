@@ -41,7 +41,8 @@ class SubmissionController extends Controller
             'deskripsi_peminjaman' => 'required|string',
         ]);
 
-        LendSubmission::create([
+        // 1. Buat record submission tanpa proposal_id terlebih dahulu
+        $submission = LendSubmission::create([
             'user_id' => auth()->id(),
             'full_name' => $validated['nama_lengkap'],
             'employee_id' => $validated['nip'],
@@ -54,7 +55,11 @@ class SubmissionController extends Controller
             'description' => $validated['deskripsi_peminjaman'],
         ]);
 
-        return redirect()->route('submission')->with('success', 'Pengajuan peminjaman barang berhasil dikirim!');
+        // 2. Buat proposal_id berdasarkan ID record yang baru dibuat, lalu simpan
+        $submission->proposal_id = 'A-' . $submission->id;
+        $submission->save();
+
+        return redirect()->route('submission')->with('success', 'Pengajuan peminjaman barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
     }
 
     // Method untuk menyimpan data form Pengadaan
@@ -75,7 +80,8 @@ class SubmissionController extends Controller
             'deskripsi_pengadaan' => 'required|string',
         ]);
 
-        ProcureSubmission::create([
+        // 1. Buat record submission
+        $submission = ProcureSubmission::create([
             'user_id' => auth()->id(),
             'full_name' => $validated['nama_lengkap'],
             'employee_id' => $validated['nip'],
@@ -91,6 +97,10 @@ class SubmissionController extends Controller
             'procurement_description' => $validated['deskripsi_pengadaan'],
         ]);
 
-        return redirect()->route('submission')->with('success', 'Pengajuan pengadaan barang berhasil dikirim!');
+        // 2. Buat proposal_id dan simpan
+        $submission->proposal_id = 'B-' . $submission->id;
+        $submission->save();
+
+        return redirect()->route('submission')->with('success', 'Pengajuan pengadaan barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
     }
 }
