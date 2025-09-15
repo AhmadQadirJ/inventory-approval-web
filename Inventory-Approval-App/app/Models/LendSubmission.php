@@ -14,4 +14,9 @@ class LendSubmission extends Model
         'user_id', 'full_name', 'employee_id', 'department', 'item_name',
         'quantity', 'purpose_title', 'start_date', 'end_date', 'description', 'status',
     ];
+
+    public function timelines()
+    {
+        return $this->hasMany(SubmissionTimeline::class, 'submission_id')->where('submission_type', 'lend')->latest();
+    }
 }

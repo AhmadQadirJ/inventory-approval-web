@@ -77,9 +77,9 @@
                                                 </button>
                                             </form>
                                         @elseif ($submission->status == 'Processed - GA' && Auth::user()->role == 'General Affair')
-                                            <a href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">Proceed</a>
+                                            <a href="{{ route('approval.process', $submission->id) }}" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">Proceed</a>
                                         @else
-                                            <a href="#" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Detail</a>
+                                            <a href="{{ route('approval.show', $submission->id) }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Detail</a>
                                         @endif
                                     </td>
                                 </tr>

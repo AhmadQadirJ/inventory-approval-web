@@ -1,8 +1,7 @@
 <x-app-layout>
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="max-w-4xl mx-auto sm:px-6 lg:px-8" x-data="{ modalOpen: false, modalNotes: '', modalUser: '' }">
-            <a href="{{ url()->previous() }}" class="inline-flex items-center mb-4 text-gray-600 hover:text-gray-900">
+            <a href="{{ route('approval') }}" class="inline-flex items-center mb-4 text-gray-600 hover:text-gray-900">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Return
             </a>
@@ -11,7 +10,7 @@
                 <div class="p-8 text-gray-900 space-y-8">
                     {{-- HEADER --}}
                     <div class="text-center border-b pb-4">
-                        <h2 class="text-2xl font-bold">Submission Details</h2>
+                        <h2 class="text-2xl font-bold">Approval Details</h2>
                     </div>
 
                     <div class="flex justify-between items-start">
@@ -24,8 +23,6 @@
                             @php
                                 $statusClass = '';
                                 if ($submission->status == 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
-                                else if ($submission->status == 'Accepted') $statusClass = 'bg-green-100 text-green-800';
-                                else if (Str::startsWith($submission->status, 'Rejected')) $statusClass = 'bg-red-100 text-red-800';
                                 else if (Str::startsWith($submission->status, 'Processed')) $statusClass = 'bg-blue-100 text-blue-800';
                             @endphp
                             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $statusClass }}">
@@ -75,7 +72,6 @@
                                 <label class="font-medium text-gray-500">Jumlah Barang</label>
                                 <p class="text-gray-800 mt-1">{{ $submission->quantity }} Unit</p>
                             </div>
-                            {{-- Kolom khusus Pengadaan --}}
                             @if ($submission->type == 'Pengadaan')
                                 <div>
                                     <label class="font-medium text-gray-500">Estimasi Harga</label>
@@ -87,7 +83,7 @@
                                 </div>
                                 <div class="col-span-full">
                                     <label class="font-medium text-gray-500">Deskripsi Barang</label>
-                                    <p class="text-gray-800 mt-1">{{ $submission->item_description }}</p>
+                                    <p class="text-gray-800 mt-1 whitespace-pre-wrap">{{ $submission->item_description }}</p>
                                 </div>
                             @endif
                         </div>
@@ -95,7 +91,7 @@
 
                     {{-- 3. Detail Pengajuan --}}
                     <div class="p-6 bg-gray-50 rounded-lg">
-                        <div class="flex items-center mb-4">
+                         <div class="flex items-center mb-4">
                             <div class="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold">3</div>
                             <h3 class="ml-4 text-lg font-semibold">Detail {{ $submission->type }}</h3>
                         </div>
@@ -119,84 +115,30 @@
                         </div>
                     </div>
 
-                    {{-- 4. Timeline Status --}}
-                    <div class="p-6 bg-gray-50 rounded-lg">
-                        <div class="flex items-center mb-4">
-                            <div class="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold">4</div>
-                            <h3 class="ml-4 text-lg font-semibold">Timeline Status</h3>
-                        </div>
-                        <div class="mt-4">
-                            <ul class="space-y-4">
-                                {{-- Menampilkan semua riwayat yang TELAH SELESAI --}}
-                                @forelse($submission->timelines->sortBy('created_at') as $timeline)
-                                <li>
-                                    <div class="flex items-start">
-                                        <div class="h-5 w-5 rounded-full bg-green-500 flex-shrink-0 mt-1"></div>
-                                        <div class="ml-4">
-                                            @if($timeline->notes && $timeline->status !== 'Pending')
-                                                {{-- Status bisa diklik jika ada notes --}}
-                                                <button @click="modalOpen = true; modalNotes = `{{ addslashes($timeline->notes) }}`; modalUser = `{{ $timeline->user->name }} - {{ $timeline->user->role }}`" class="font-semibold text-left text-gray-800 hover:underline focus:outline-none">
-                                                    {{ $timeline->status }}
-                                                </button>
-                                            @else
-                                                {{-- Status tidak bisa diklik jika tidak ada notes --}}
-                                                <p class="font-semibold text-gray-800">{{ $timeline->status }}</p>
-                                            @endif
-                                            <p class="text-sm text-gray-500">{{ $timeline->created_at->format('d/m/Y H:i') }} WIB</p>
-                                        </div>
-                                    </div>
-                                </li>
-                                @empty
-                                <li>Tidak ada riwayat status.</li>
-                                @endforelse
+                    {{-- (Timeline Status bisa ditambahkan di sini jika perlu, sama seperti di show.blade.php) --}}
+                    
+                    {{-- BAGIAN BARU: VERIFICATION & APPROVAL FORM --}}
+                    <div class="border-t pt-8">
+                        <h2 class="text-xl font-bold text-gray-800">Verification & Approval</h2>
+                        <form method="POST" class="mt-6">
+                            @csrf
+                            <input type="hidden" name="id" value="{{ $submission->id }}">
+                            <div>
+                                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+                                <textarea id="notes" name="notes" rows="4" class="mt-1 block w-full bg-gray-50 border-gray-300 rounded-md shadow-sm" placeholder="Add verification notes here..."></textarea>
+                            </div>
 
-                                {{-- Menampilkan status SAAT INI jika belum selesai --}}
-                                @if($submission->status != 'Accepted' && !Str::startsWith($submission->status, 'Rejected'))
-                                    <li>
-                                        <div class="flex items-start">
-                                            <div class="h-5 w-5 rounded-full bg-gray-400 flex-shrink-0 mt-1 animate-pulse"></div>
-                                            <div class="ml-4">
-                                                <p class="font-semibold text-gray-800">{{ $submission->status }}</p>
-                                                <p class="text-sm text-gray-500">On Processed</p>
-                                            </div>
-                                        </div>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
+                            <div class="mt-6 flex justify-between items-center">
+                                <a href="{{ route('approval') }}" class="px-8 py-2 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Kembali</a>
+                                <div class="space-x-4">
+                                    <button type="submit" formaction="{{ route('approval.approve', $submission->proposal_id) }}" class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Approve</button>
+                                    <button type="submit" formaction="{{ route('approval.reject', $submission->proposal_id) }}" class="px-8 py-2 bg-yellow-500 text-white font-semibold rounded-md hover:bg-yellow-600">Reject</button>
+                                </div>
+                            </div>
+                        </form>
                     </div>
 
-                    {{-- Action Buttons --}}
-                    <div class="flex justify-center space-x-4 pt-4 border-t">
-                        <a href="{{ route('history') }}" class="px-8 py-2 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Kembali</a>
-
-                        {{-- Tombol Print PDF Kondisional --}}
-                        @if ($submission->status == 'Accepted')
-                            {{-- Versi Aktif jika status "Accepted" --}}
-                            <button class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
-                                Print PDF
-                            </button>
-                        @else
-                            {{-- Versi Nonaktif (Disabled) jika status BUKAN "Accepted" --}}
-                            <button disabled title="Not Eligible" class="px-8 py-2 bg-gray-400 text-white font-semibold rounded-md cursor-not-allowed">
-                                Print PDF
-                            </button>
-                        @endif
-
-                        <button class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Print Detail</button>
-                    </div>
-                </div>
-            </div>
-            {{-- Modal untuk Notes --}}
-            <div x-show="modalOpen" @click.away="modalOpen = false" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                    <h3 class="font-bold text-lg" x-text="'Notes By: ' + modalUser"></h3>
-                    <p class="py-4 whitespace-pre-wrap" x-text="modalNotes"></p>
-                    <div class="text-right">
-                        <button @click="modalOpen = false" class="px-4 py-2 bg-gray-200 rounded-md">Close</button>
-                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</x-app-layout>
+    </x-app-layout>

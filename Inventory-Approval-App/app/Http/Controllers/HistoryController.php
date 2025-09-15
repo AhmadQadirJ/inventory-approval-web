@@ -82,8 +82,8 @@ class HistoryController extends Controller
             abort(404);
         }
 
-        // Tambahkan properti 'type' ke objek untuk digunakan di view
-        $submission->type = $type;
+        // logika untuk menemukan $submission
+        $submission->load('timelines.user'); // Eager load relasi timeline dan user
 
         return view('history.show', [
             'submission' => $submission

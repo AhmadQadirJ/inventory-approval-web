@@ -59,6 +59,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
      // Route BARU untuk aksi "Act" oleh General Affair
     Route::post('/approval/{proposal_id}/act', [ApprovalController::class, 'act'])->name('approval.act')->middleware('has.approval.role');
+    
+    // Route BARU untuk menampilkan halaman proses approval
+    Route::get('/approval/{proposal_id}/process', [ApprovalController::class, 'process'])->name('approval.process')->middleware('has.approval.role');
+
+    // Route untuk aksi "approve" dan "reject"
+    Route::post('/approval/{proposal_id}/approve', [ApprovalController::class, 'approve'])->name('approval.approve')->middleware('has.approval.role');
+    Route::post('/approval/{proposal_id}/reject', [ApprovalController::class, 'reject'])->name('approval.reject')->middleware('has.approval.role');
+    
+    // Route untuk aksi "detail" approval
+    Route::get('/approval/{proposal_id}', [ApprovalController::class, 'show'])->name('approval.show')->middleware('has.approval.role');
+
 });
 
 require __DIR__.'/auth.php';

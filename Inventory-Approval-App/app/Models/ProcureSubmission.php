@@ -15,4 +15,9 @@ class ProcureSubmission extends Model
         'quantity', 'estimated_price', 'reference_link', 'item_description',
         'purpose_title', 'start_date', 'end_date', 'procurement_description', 'status',
     ];
+
+    public function timelines()
+    {
+        return $this->hasMany(SubmissionTimeline::class, 'submission_id')->where('submission_type', 'procure')->latest();
+    }
 }

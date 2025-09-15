@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\LendSubmission;
 use App\Models\ProcureSubmission;
+use App\Models\SubmissionTimeline;
 use Illuminate\Http\Request;
 
 class SubmissionController extends Controller
@@ -59,6 +60,14 @@ class SubmissionController extends Controller
         $submission->proposal_id = 'A-' . $submission->id;
         $submission->save();
 
+        SubmissionTimeline::create([
+            'submission_id' => $submission->id,
+            'submission_type' => 'lend',
+            'status' => 'Pending',
+            'notes' => 'Submission created by user.',
+            'user_id' => auth()->id(),
+        ]);
+
         return redirect()->route('submission')->with('success', 'Pengajuan peminjaman barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
     }
 
@@ -100,6 +109,14 @@ class SubmissionController extends Controller
         // 2. Buat proposal_id dan simpan
         $submission->proposal_id = 'B-' . $submission->id;
         $submission->save();
+
+        SubmissionTimeline::create([
+            'submission_id' => $submission->id,
+            'submission_type' => 'procure',
+            'status' => 'Pending',
+            'notes' => 'Submission created by user.',
+            'user_id' => auth()->id(),
+        ]);
 
         return redirect()->route('submission')->with('success', 'Pengajuan pengadaan barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
     }
