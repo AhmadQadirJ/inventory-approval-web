@@ -62,6 +62,22 @@
                                     <x-input-label for="estimasi_harga" value="Estimasi Harga*" />
                                     <x-text-input id="estimasi_harga" name="estimasi_harga" type="text" placeholder="Rp. 0" class="mt-1 block w-full" required />
                                 </div>
+                                <script>
+                                    document.addEventListener("DOMContentLoaded", function () {
+                                    const hargaInput = document.getElementById('estimasi_harga');
+                                        hargaInput.addEventListener('input', function (e) {
+                                            // hapus semua karakter non-angka
+                                            let value = e.target.value.replace(/\D/g, '');
+
+                                            // format ribuan pakai titik
+                                            if (value) {
+                                                e.target.value = new Intl.NumberFormat('id-ID').format(value);
+                                            } else {
+                                                e.target.value = '';
+                                            }
+                                        });
+                                    });
+                                </script>
                                 <div>
                                     <x-input-label for="link_referensi" value="Link Referensi*" />
                                     <x-text-input id="link_referensi" name="link_referensi" type="url" placeholder="https://..." class="mt-1 block w-full" required />

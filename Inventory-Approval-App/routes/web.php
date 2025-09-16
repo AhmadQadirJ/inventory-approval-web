@@ -9,7 +9,13 @@ use App\Http\Controllers\ApprovalController;
 use App\Models\User;
 
 Route::get('/', function () {
-    return view('welcome');
+        // if user not logged in, redirect to login
+    if (!Auth::check()) {
+        return redirect()->route('login');
+    }
+
+    // if user is logged in, redirect to dashboard
+    return redirect()->route('dashboard');
 });
 
 // Semua route yang butuh login kita masukkan ke dalam grup ini

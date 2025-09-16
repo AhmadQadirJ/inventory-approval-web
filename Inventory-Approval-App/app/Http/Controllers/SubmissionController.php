@@ -80,7 +80,7 @@ class SubmissionController extends Controller
             'departemen' => 'required|string',
             'nama_barang' => 'required|string|max:255',
             'jumlah' => 'required|integer|min:1',
-            'estimasi_harga' => 'required|numeric|min:0',
+            'estimasi_harga' => 'required|min:0',
             'link_referensi' => 'nullable|url',
             'deskripsi_barang' => 'required|string',
             'judul_pengadaan' => 'required|string|max:255',
@@ -89,6 +89,7 @@ class SubmissionController extends Controller
             'deskripsi_pengadaan' => 'required|string',
         ]);
 
+        $cleanPrice = str_replace('.', '', $request->estimasi_harga);
         // 1. Buat record submission
         $submission = ProcureSubmission::create([
             'user_id' => auth()->id(),
@@ -97,7 +98,7 @@ class SubmissionController extends Controller
             'department' => $validated['departemen'],
             'item_name' => $validated['nama_barang'],
             'quantity' => $validated['jumlah'],
-            'estimated_price' => $validated['estimasi_harga'],
+            'estimated_price' => $cleanPrice,
             'reference_link' => $validated['link_referensi'],
             'item_description' => $validated['deskripsi_barang'],
             'purpose_title' => $validated['judul_pengadaan'],
