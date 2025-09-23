@@ -67,21 +67,24 @@
                                             {{ $submission->status }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        {{-- Logika Tombol Aksi --}}
-                                        @if ($submission->status == 'Pending' && Auth::user()->role == 'General Affair')
-                                            <form action="{{ route('approval.act', $submission->id) }}" method="POST">
-                                                @csrf
-                                                <button type="submit" class="px-4 py-2 bg-blue-500 text-white text-xs font-semibold rounded-md hover:bg-blue-600">
-                                                    Act
-                                                </button>
-                                            </form>
-                                        @elseif ($submission->status == 'Processed - GA' && Auth::user()->role == 'General Affair')
-                                            <a href="{{ route('approval.process', $submission->id) }}" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">Proceed</a>
-                                        @else
-                                            <a href="{{ route('approval.show', $submission->id) }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Detail</a>
-                                        @endif
-                                    </td>
+                                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    {{-- Logika Tombol Aksi --}}
+                                    @if ($submission->status == 'Pending' && Auth::user()->role == 'General Affair')
+                                        <form action="{{ route('approval.act', $submission->id) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="px-4 py-2 bg-blue-500 text-white text-xs font-semibold rounded-md hover:bg-blue-600">
+                                                Act
+                                            </button>
+                                        </form>
+                                    @elseif (($submission->status == 'Processed - GA' && Auth::user()->role == 'General Affair') ||
+                                            ($submission->status == 'Processed - Manager' && Auth::user()->role == 'Manager') ||
+                                            ($submission->status == 'Processed - Finance' && Auth::user()->role == 'Finance') ||
+                                            ($submission->status == 'Processed - COO' && Auth::user()->role == 'COO'))
+                                        <a href="{{ route('approval.process', $submission->id) }}" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">Proceed</a>
+                                    @else
+                                        <a href="{{ route('approval.show', $submission->id) }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Detail</a>
+                                    @endif
+                                </td>
                                 </tr>
                             @empty
                                 <tr>
