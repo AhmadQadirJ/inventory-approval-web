@@ -22,16 +22,25 @@
                 </div>
 
                 {{-- Search & Filter --}}
-                <div class="flex justify-between items-center mb-4">
-                    <div class="w-1/2">
+                <form action="{{ route('approval') }}" method="GET" class="flex justify-between items-center mb-4">
+                    {{-- Search Bar Section --}}
+                    <div class="flex items-center w-full md:w-1/2">
                         <label for="search" class="text-sm font-medium text-gray-700 mr-2">Search :</label>
-                        <input type="text" id="search" class="inline-block w-2/3 border-gray-300 bg-gray-50 rounded-md shadow-sm">
+                        <input type="text" id="search" name="search" value="{{ request('search') }}" class="w-full border-gray-300 bg-gray-50 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <button type="submit" class="ml-2 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700">Search</button>
+                        @if(request('search') || request('waiting'))
+                            <a href="{{ route('approval') }}" class="ml-2 text-sm text-gray-600 hover:underline">Reset</a>
+                        @endif
                     </div>
-                    <div class="flex items-center">
+
+                    {{-- Checkbox Filter Section --}}
+                    <div class="hidden md:flex items-center">
                         <label for="show_only_waiting" class="text-sm font-medium text-gray-700 mr-2">Show Only 'Waiting For Approval'</label>
-                        <input type="checkbox" id="show_only_waiting" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                        <input type="checkbox" id="show_only_waiting" name="waiting" value="1" 
+                            onchange="this.form.submit()" {{ request('waiting') ? 'checked' : '' }}
+                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
                     </div>
-                </div>
+                </form>
 
                 {{-- Tabel Data --}}
                 <div class="overflow-x-auto">

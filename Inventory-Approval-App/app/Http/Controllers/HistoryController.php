@@ -10,48 +10,61 @@ use Illuminate\Support\Str;
 
 class HistoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $userId = Auth::id();
+        $search = $request->input('search');
+        $statusFilter = $request->input('status_filter'); // Ambil input filter status
 
-        // 1. Ambil data dari kedua tabel untuk user saat ini
-        $lendSubmissions = LendSubmission::where('user_id', $userId)->get();
-        $procureSubmissions = ProcureSubmission::where('user_id', $userId)->get();
+        // 1. Ambil data dari kedua tabel, tambahkan filter pencarian jika ada
+        $lendSubmissionsQuery = LendSubmission::where('user_id', $userId);
+        $procureSubmissionsQuery = ProcureSubmission::where('user_id', $userId);
+
+        if ($search) {
+            // Logika pencarian tetap sama
+            $lendSubmissionsQuery->where(function ($query) use ($search) {
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
+            });
+            $procureSubmissionsQuery->where(function ($query) use ($search) {
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
+            });
+        }
+
+        $lendSubmissions = $lendSubmissionsQuery->get();
+        $procureSubmissions = $procureSubmissionsQuery->get();
 
         // 2. Format dan gabungkan kedua koleksi data
         $submissions = $lendSubmissions->map(function ($item) {
-            return (object) [
-                'id' => $item->proposal_id,
-                'type' => 'Peminjaman',
-                'item' => $item->item_name,
-                'purpose' => $item->purpose_title,
-                'date' => $item->created_at->format('d/m/Y'),
-                'status' => $item->status,
-            ];
+            // ... (mapping data tetap sama)
+            return (object) [ 'id' => $item->proposal_id, 'type' => 'Peminjaman', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status ];
         })->merge($procureSubmissions->map(function ($item) {
-            return (object) [
-                'id' => $item->proposal_id,
-                'type' => 'Pengadaan',
-                'item' => $item->item_name,
-                'purpose' => $item->purpose_title,
-                'date' => $item->created_at->format('d/m/Y'),
-                'status' => $item->status,
-            ];
-        }))->sortByDesc('date'); // Urutkan berdasarkan tanggal terbaru
+            return (object) [ 'id' => $item->proposal_id, 'type' => 'Pengadaan', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status ];
+        }));
 
-        // 3. Hitung statistik untuk cards
+        // -- LOGIKA BARU UNTUK FILTER STATUS --
+        if ($statusFilter) {
+            $submissions = $submissions->filter(function ($submission) use ($statusFilter) {
+                // Untuk "Rejected" dan "Processed", kita cek awal katanya saja
+                if ($statusFilter === 'Rejected' || $statusFilter === 'Processed') {
+                    return Str::startsWith($submission->status, $statusFilter);
+                }
+                // Untuk "Pending" dan "Accepted", kita cek kecocokan persis
+                return $submission->status === $statusFilter;
+            });
+        }
+        // -- AKHIR LOGIKA BARU --
+
+        $submissions = $submissions->sortByDesc('date');
+
+        // 3. Hitung statistik (tetap sama, akan dihitung berdasarkan data yang sudah difilter)
         $pendingCount = $submissions->where('status', 'Pending')->count();
         $acceptedCount = $submissions->where('status', 'Accepted')->count();
-
-        // Hitung status yang diawali dengan "Rejected"
-        $rejectedCount = $submissions->filter(function ($item) {
-            return Str::startsWith($item->status, 'Rejected');
-        })->count();
-
-        // Hitung status yang diawali dengan "Processed"
-        $processedCount = $submissions->filter(function ($item) {
-            return Str::startsWith($item->status, 'Processed');
-        })->count();
+        $rejectedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Rejected'))->count();
+        $processedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Processed'))->count();
 
         // 4. Kirim semua data ke view
         return view('history.index', [

@@ -11,40 +11,73 @@ use Illuminate\Support\Str;
 
 class ApprovalController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil SEMUA data, tidak hanya milik user saat ini
-        $lendSubmissions = LendSubmission::all();
-        $procureSubmissions = ProcureSubmission::all();
+        $search = $request->input('search');
+        $waitingOnly = $request->input('waiting'); // Ambil status checkbox
 
-        // Gabungkan dan format data
+        $lendSubmissionsQuery = LendSubmission::query();
+        $procureSubmissionsQuery = ProcureSubmission::query();
+
+        if ($search) {
+            // ... (logika pencarian tetap sama)
+            $lendSubmissionsQuery->where(function ($query) use ($search) {
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
+            });
+
+            $procureSubmissionsQuery->where(function ($query) use ($search) {
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
+            });
+        }
+
+        $lendSubmissions = $lendSubmissionsQuery->get();
+        $procureSubmissions = $procureSubmissionsQuery->get();
+
         $submissions = $lendSubmissions->map(function ($item) {
+            // ... (mapping data tetap sama)
             return (object) [
-                'id' => $item->proposal_id,
-                'type' => 'Peminjaman',
-                'item' => $item->item_name,
-                'purpose' => $item->purpose_title,
-                'date' => $item->created_at->format('d/m/Y'),
+                'id' => $item->proposal_id, 'type' => 'Peminjaman', 'item' => $item->item_name,
+                'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'),
                 'status' => $item->status,
             ];
         })->merge($procureSubmissions->map(function ($item) {
             return (object) [
-                'id' => $item->proposal_id,
-                'type' => 'Pengadaan',
-                'item' => $item->item_name,
-                'purpose' => $item->purpose_title,
-                'date' => $item->created_at->format('d/m/Y'),
+                'id' => $item->proposal_id, 'type' => 'Pengadaan', 'item' => $item->item_name,
+                'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'),
                 'status' => $item->status,
             ];
-        }))->sortByDesc('date');
+        }));
 
-        // -- LOGIKA BARU UNTUK STATISTIK --
-        $waitingForApprovalCount = 0;
+        // -- LOGIKA BARU UNTUK FILTER "WAITING FOR APPROVAL" --
         $userRole = auth()->user()->role;
+        if ($waitingOnly) {
+            $submissions = $submissions->filter(function ($submission) use ($userRole) {
+                switch ($userRole) {
+                    case 'General Affair':
+                        return in_array($submission->status, ['Pending', 'Processed - GA']);
+                    case 'Manager':
+                        return $submission->status === 'Processed - Manager';
+                    case 'Finance':
+                        return $submission->status === 'Processed - Finance';
+                    case 'COO':
+                        return $submission->status === 'Processed - COO';
+                    default:
+                        return false;
+                }
+            });
+        }
+        // -- AKHIR LOGIKA BARU --
 
+        $submissions = $submissions->sortByDesc('date');
+
+        // ... (logika statistik tetap sama)
+        $waitingForApprovalCount = 0;
         switch ($userRole) {
             case 'General Affair':
-                // GA menghitung proposal yang butuh di-"Act" (Pending) dan di-"Proceed" (Processed - GA)
                 $waitingForApprovalCount = $submissions->whereIn('status', ['Pending', 'Processed - GA'])->count();
                 break;
             case 'Manager':
@@ -57,7 +90,6 @@ class ApprovalController extends Controller
                 $waitingForApprovalCount = $submissions->where('status', 'Processed - COO')->count();
                 break;
         }
-        // -- AKHIR LOGIKA BARU --
 
         return view('approval.index', [
             'submissions' => $submissions,

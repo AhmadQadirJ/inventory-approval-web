@@ -24,10 +24,35 @@
                     </div>
                 </div>
 
-                {{-- Search Bar --}}
+                {{-- Search and Filter Bar --}}
                 <div class="mb-4">
-                    <label for="search" class="block text-sm font-medium text-gray-700">Search :</label>
-                    <input type="text" id="search" class="mt-1 block w-full md:w-1/3 border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <form action="{{ route('history') }}" method="GET" class="flex flex-col md:flex-row md:items-center md:space-x-4">
+                        {{-- Search Input --}}
+                        <div class="flex-grow">
+                            <label for="search" class="block text-sm font-medium text-gray-700">Search :</label>
+                            <input type="text" id="search" name="search" value="{{ request('search') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+
+                        {{-- Status Filter Dropdown --}}
+                        <div class="mt-2 md:mt-0">
+                            <label for="status_filter" class="block text-sm font-medium text-gray-700">Filter by Status:</label>
+                            <select name="status_filter" id="status_filter" onchange="this.form.submit()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">All Statuses</option>
+                                <option value="Pending"   @if(request('status_filter') == 'Pending') selected @endif>Show Only Pending</option>
+                                <option value="Accepted"  @if(request('status_filter') == 'Accepted') selected @endif>Show Only Accepted</option>
+                                <option value="Rejected"  @if(request('status_filter') == 'Rejected') selected @endif>Show Only Rejected</option>
+                                <option value="Processed" @if(request('status_filter') == 'Processed') selected @endif>Show Only Processed</option>
+                            </select>
+                        </div>
+
+                        {{-- Action Buttons --}}
+                        <div class="flex items-end space-x-2 mt-4 md:mt-0">
+                            <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700">Search</button>
+                            @if(request('search') || request('status_filter'))
+                                <a href="{{ route('history') }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">Reset</a>
+                            @endif
+                        </div>
+                    </form>
                 </div>
 
                 {{-- Tabel Data --}}
