@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\UserManagementController;
 use App\Models\User;
 
 Route::get('/', function () {
@@ -48,9 +49,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('approval');
 
     // Halaman User Management
-    Route::get('/user-management', function () {
-        return view('user-management');
-    })->name('user-management');
+    Route::resource('user-management', UserManagementController::class)
+        ->except(['create', 'store', 'show']) // Kita tidak butuh form 'create' atau 'show'
+        ->middleware('is.admin');
 
     // Route untuk Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

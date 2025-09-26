@@ -44,7 +44,7 @@
 
                     @if (Auth::user()->role == 'Admin')
                         <div class="h-8 border-l border-gray-300 mx-2"></div> {{-- Pemisah vertikal --}}
-                        <x-nav-link :href="route('user-management')" :active="request()->routeIs('user-management')" class="px-6 h-full flex items-center">
+                        <x-nav-link :href="route('user-management.index')" :active="request()->routeIs('user-management')" class="px-6 h-full flex items-center">
                             User Management
                         </x-nav-link>
                     @endif
@@ -128,7 +128,7 @@
             @endif
 
              @if (Auth::user()->role == 'Admin')
-                <x-responsive-nav-link :href="route('user-management')" :active="request()->routeIs('user-management')">
+                <x-responsive-nav-link :href="route('user-management.index')" :active="request()->routeIs('user-management')">
                     User Management
                 </x-responsive-nav-link>
             @endif
