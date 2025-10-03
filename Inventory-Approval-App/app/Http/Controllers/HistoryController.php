@@ -7,6 +7,7 @@ use App\Models\ProcureSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class HistoryController extends Controller
 {
@@ -101,5 +102,56 @@ class HistoryController extends Controller
         return view('history.show', [
             'submission' => $submission
         ]);
+    }
+
+    public function printPdf($proposal_id)
+    {
+        $submission = null;
+        $type = null;
+
+        // Logika untuk menemukan submission (sama seperti di method show)
+        if (Str::startsWith($proposal_id, 'A-')) {
+            $submission = LendSubmission::where('proposal_id', $proposal_id)->first();
+            $type = 'Peminjaman';
+        } elseif (Str::startsWith($proposal_id, 'B-')) {
+            $submission = ProcureSubmission::where('proposal_id', $proposal_id)->first();
+            $type = 'Pengadaan';
+        }
+
+        // Pastikan user hanya bisa print proposal miliknya yang sudah 'Accepted'
+        if (!$submission || $submission->user_id !== Auth::id() || $submission->status !== 'Accepted') {
+            abort(403, 'Unauthorized Action or Submission Not Accepted.');
+        }
+        $submission->type = $type;
+
+        // Data untuk dikirim ke view PDF
+        $data = [
+            'submission' => $submission,
+            'document_number' => date('Y').'/INV/'.str_replace('-', '/', $submission->proposal_id)
+        ];
+
+        // Buat PDF dari view
+        $pdf = Pdf::loadView('pdf.submission-document', $data);
+
+        // Tampilkan PDF di browser
+        return $pdf->stream('submission-' . $submission->proposal_id . '.pdf');
+    }
+
+    public function printDetail($proposal_id)
+    {
+        // Logika untuk menemukan submission (sama seperti di method show)
+        $submission = null; $type = null;
+        if (Str::startsWith($proposal_id, 'A-')) {
+            $submission = LendSubmission::where('proposal_id', $proposal_id)->first(); $type = 'Peminjaman';
+        } elseif (Str::startsWith($proposal_id, 'B-')) {
+            $submission = ProcureSubmission::where('proposal_id', $proposal_id)->first(); $type = 'Pengadaan';
+        }
+        if (!$submission || $submission->user_id !== Auth::id()) { abort(404); }
+        $submission->load('timelines.user');
+        $submission->type = $type;
+
+        $pdf = Pdf::loadView('history.print-detail', ['submission' => $submission]);
+
+        return $pdf->stream('detail-' . $submission->proposal_id . '.pdf');
     }
 }

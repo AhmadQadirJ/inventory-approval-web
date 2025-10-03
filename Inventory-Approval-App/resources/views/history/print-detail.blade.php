@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submission Detail - {{ $submission->proposal_id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10pt; /* Ukuran font dasar diperkecil */
+            color: #333;
+            line-height: 1.2; /* Jarak antar baris dipersempit */
+        }
+        .container {
+            width: 100%;
+        }
+        h1 {
+            font-size: 22pt; /* Ukuran judul utama diperkecil */
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 8px;
+            margin-bottom: 25px;
+        }
+        h2 {
+            font-size: 13pt; /* Ukuran sub-judul diperkecil */
+            font-weight: bold;
+            color: #333;
+            background-color: #f2f2f2;
+            padding: 8px;
+            margin-top: 20px; /* Jarak antar section dikurangi */
+            margin-bottom: 10px;
+            border-left: 3px solid #e12d38;
+        }
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .detail-table td {
+            padding: 5px 0; /* Padding di dalam tabel dikurangi */
+            vertical-align: top;
+        }
+        .detail-table td:first-child {
+            width: 30%;
+            font-weight: bold;
+            color: #555;
+        }
+        .timeline-list {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 10px;
+        }
+        .timeline-list li {
+            position: relative;
+            padding-left: 25px;
+            margin-bottom: 10px; /* Jarak antar item timeline dikurangi */
+        }
+        .timeline-list li::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #28a745; /* Hijau untuk selesai */
+        }
+        .timeline-list .in-progress::before {
+            background-color: #6c757d; /* Abu-abu untuk sedang berjalan */
+        }
+        .timeline-status {
+            font-weight: bold;
+        }
+        .timeline-meta {
+            font-size: 8pt; /* Ukuran font meta diperkecil */
+            color: #666;
+        }
+        .timeline-notes {
+            font-size: 9pt;
+            color: #444;
+            border-left: 2px solid #ddd;
+            padding-left: 10px;
+            margin-top: 4px; /* Jarak notes dari status dikurangi */
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Submission Details</h1>
+
+        {{-- DETAIL UTAMA --}}
+        <h2>Detail Pengajuan</h2>
+        <table class="detail-table">
+            <tr>
+                <td>ID Proposal</td>
+                <td>{{ $submission->proposal_id }}</td>
+            </tr>
+            <tr>
+                <td>Tipe Pengajuan</td>
+                <td>{{ $submission->type }}</td>
+            </tr>
+             <tr>
+                <td>Status Saat Ini</td>
+                <td>{{ $submission->status }}</td>
+            </tr>
+        </table>
+
+        {{-- INFORMASI KARYAWAN --}}
+        <h2>Informasi Karyawan</h2>
+        <table class="detail-table">
+            <tr>
+                <td>Nama Lengkap</td>
+                <td>{{ $submission->full_name }}</td>
+            </tr>
+            <tr>
+                <td>ID Karyawan/NIP</td>
+                <td>{{ $submission->employee_id }}</td>
+            </tr>
+            <tr>
+                <td>Departemen</td>
+                <td>{{ $submission->department }}</td>
+            </tr>
+        </table>
+
+        {{-- DETAIL BARANG & TUJUAN --}}
+        <h2>Detail Barang & Tujuan</h2>
+        <table class="detail-table">
+            <tr>
+                <td>Nama Barang</td>
+                <td>{{ $submission->item_name }}</td>
+            </tr>
+            <tr>
+                <td>Jumlah</td>
+                <td>{{ $submission->quantity }} Unit</td>
+            </tr>
+             @if ($submission->type == 'Pengadaan')
+                <tr>
+                    <td>Estimasi Harga</td>
+                    <td>Rp {{ number_format($submission->estimated_price, 0, ',', '.') }}</td>
+                </tr>
+                 <tr>
+                    <td>Link Referensi</td>
+                    <td>{{ $submission->reference_link }}</td>
+                </tr>
+                 <tr>
+                    <td>Deskripsi Barang</td>
+                    <td>{{ $submission->item_description }}</td>
+                </tr>
+            @endif
+            <tr>
+                <td>Judul Tujuan</td>
+                <td>{{ $submission->purpose_title }}</td>
+            </tr>
+            <tr>
+                <td>Tanggal Penggunaan</td>
+                <td>{{ \Carbon\Carbon::parse($submission->start_date)->format('d F Y') }} - {{ \Carbon\Carbon::parse($submission->end_date)->format('d F Y') }}</td>
+            </tr>
+            <tr>
+                <td>Deskripsi Pengajuan</td>
+                <td>{{ $submission->type == 'Peminjaman' ? $submission->description : $submission->procurement_description }}</td>
+            </tr>
+        </table>
+
+        {{-- TIMELINE STATUS --}}
+        <h2>Timeline Status</h2>
+        <ul class="timeline-list">
+            @forelse($submission->timelines->sortBy('created_at') as $timeline)
+            <li>
+                <div class="timeline-status">{{ $timeline->status }}</div>
+                <div class="timeline-meta">{{ $timeline->created_at->format('d F Y, H:i') }} WIB by {{ $timeline->user->name }} ({{$timeline->user->role}})</div>
+                @if($timeline->notes && !Str::contains(strtolower($timeline->notes), 'created by user'))
+                    <div class="timeline-notes">"{{ $timeline->notes }}"</div>
+                @endif
+            </li>
+            @empty
+            <li>Tidak ada riwayat status yang tercatat.</li>
+            @endforelse
+
+            {{-- Menampilkan status saat ini jika belum selesai --}}
+            @if($submission->status != 'Accepted' && !Str::startsWith($submission->status, 'Rejected'))
+                <li class="in-progress">
+                    <div class="timeline-status">{{ $submission->status }}</div>
+                    <div class="timeline-meta">On Progress</div>
+                </li>
+            @endif
+        </ul>
+
+    </div>
+</body>
+</html>

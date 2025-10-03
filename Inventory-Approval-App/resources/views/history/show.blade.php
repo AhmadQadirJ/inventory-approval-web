@@ -172,18 +172,29 @@
 
                         {{-- Tombol Print PDF Kondisional --}}
                         @if ($submission->status == 'Accepted')
-                            {{-- Versi Aktif jika status "Accepted" --}}
-                            <button class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                            @php
+                                // Cek apakah halaman saat ini adalah bagian dari approval flow atau history flow
+                                $printRoute = request()->routeIs('approval.show') 
+                                    ? route('approval.print', $submission->proposal_id) 
+                                    : route('history.print', $submission->proposal_id);
+                            @endphp
+                            <a href="{{ $printRoute }}" target="_blank" class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
                                 Print PDF
-                            </button>
+                            </a>
                         @else
-                            {{-- Versi Nonaktif (Disabled) jika status BUKAN "Accepted" --}}
                             <button disabled title="Not Eligible" class="px-8 py-2 bg-gray-400 text-white font-semibold rounded-md cursor-not-allowed">
                                 Print PDF
                             </button>
                         @endif
 
-                        <button class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Print Detail</button>
+                        @php
+                            $printDetailRoute = request()->routeIs('approval.show') 
+                                ? route('approval.printDetail', $submission->proposal_id) 
+                                : route('history.printDetail', $submission->proposal_id);
+                        @endphp
+                        <a href="{{ $printDetailRoute }}" target="_blank" class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">
+                            Print Detail
+                        </a>
                     </div>
                 </div>
             </div>

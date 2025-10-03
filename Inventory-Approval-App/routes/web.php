@@ -77,6 +77,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route untuk aksi "detail" approval
     Route::get('/approval/{proposal_id}', [ApprovalController::class, 'show'])->name('approval.show')->middleware('has.approval.role');
 
+    // Route BARU untuk generate PDF
+    Route::get('/submission/{proposal_id}/print', [HistoryController::class, 'printPdf'])->name('history.print');
+
+    // Route BARU untuk print versi approver
+    Route::get('/approval/{proposal_id}/print', [ApprovalController::class, 'printPdf'])->name('approval.print')->middleware('has.approval.role');
+
+    // Route BARU untuk Print Detail (User biasa)
+    Route::get('/submission/{proposal_id}/print-detail', [HistoryController::class, 'printDetail'])->name('history.printDetail');
+
+    // Route BARU untuk Print Detail (Approver)
+    Route::get('/approval/{proposal_id}/print-detail', [ApprovalController::class, 'printDetail'])->name('approval.printDetail')->middleware('has.approval.role');
 });
 
 require __DIR__.'/auth.php';

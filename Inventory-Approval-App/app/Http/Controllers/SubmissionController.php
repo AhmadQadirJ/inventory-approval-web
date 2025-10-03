@@ -39,7 +39,7 @@ class SubmissionController extends Controller
             'judul_peminjaman' => 'required|string|max:255',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'deskripsi_peminjaman' => 'required|string',
+            'deskripsi_peminjaman' => 'required|string|max:300',
         ]);
 
         // 1. Buat record submission tanpa proposal_id terlebih dahulu
@@ -82,11 +82,11 @@ class SubmissionController extends Controller
             'jumlah' => 'required|integer|min:1',
             'estimasi_harga' => 'required|min:0',
             'link_referensi' => 'nullable|url',
-            'deskripsi_barang' => 'required|string',
+            'deskripsi_barang' => 'required|string|max:300',
             'judul_pengadaan' => 'required|string|max:255',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'deskripsi_pengadaan' => 'required|string',
+            'deskripsi_pengadaan' => 'required|string|max:300',
         ]);
 
         $cleanPrice = str_replace('.', '', $request->estimasi_harga);

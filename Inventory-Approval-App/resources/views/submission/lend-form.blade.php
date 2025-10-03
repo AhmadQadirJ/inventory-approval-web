@@ -78,9 +78,12 @@
                                         <x-text-input id="tanggal_selesai" name="tanggal_selesai" type="date" class="block w-full" required />
                                     </div>
                                 </div>
-                                <div>
+                                <div x-data="{ count: 0 }" x-init="count = $refs.content.value.length">
                                     <x-input-label for="deskripsi_peminjaman" value="Deskripsi Peminjaman*" />
-                                    <textarea id="deskripsi_peminjaman" name="deskripsi_peminjaman" rows="4" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
+                                    <textarea x-ref="content" @input="count = $event.target.value.length" id="deskripsi_peminjaman" name="deskripsi_peminjaman" rows="4" maxlength="300" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
+                                    <div class="text-sm text-gray-500 mt-1 text-right" :class="{ 'text-red-500': count > 300 }">
+                                        <span x-text="count"></span> / 300
+                                    </div>
                                 </div>
                             </div>
                         </div>

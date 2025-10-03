@@ -82,9 +82,12 @@
                                     <x-input-label for="link_referensi" value="Link Referensi*" />
                                     <x-text-input id="link_referensi" name="link_referensi" type="url" placeholder="https://..." class="mt-1 block w-full" required />
                                 </div>
-                                <div class="md:col-span-2">
+                                <div class="md:col-span-2" x-data="{ count: 0 }" x-init="count = $refs.content.value.length">
                                     <x-input-label for="deskripsi_barang" value="Deskripsi Barang*" />
-                                    <textarea id="deskripsi_barang" name="deskripsi_barang" rows="3" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
+                                    <textarea x-ref="content" @input="count = $event.target.value.length" id="deskripsi_barang" name="deskripsi_barang" rows="3" maxlength="300" class="mt-1 block w-full border-gray-300 ..."></textarea>
+                                    <div class="text-sm text-gray-500 mt-1 text-right" :class="{ 'text-red-500': count > 300 }">
+                                        <span x-text="count"></span> / 300
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -108,9 +111,12 @@
                                         <x-text-input id="tanggal_selesai" name="tanggal_selesai" type="date" class="block w-full" required />
                                     </div>
                                 </div>
-                                <div>
+                                <div x-data="{ count: 0 }" x-init="count = $refs.content.value.length">
                                     <x-input-label for="deskripsi_pengadaan" value="Deskripsi Pengadaan*" />
-                                    <textarea id="deskripsi_pengadaan" name="deskripsi_pengadaan" rows="4" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
+                                    <textarea x-ref="content" @input="count = $event.target.value.length" id="deskripsi_pengadaan" name="deskripsi_pengadaan" rows="4" maxlength="300" class="mt-1 block w-full border-gray-300 ..."></textarea>
+                                    <div class="text-sm text-gray-500 mt-1 text-right" :class="{ 'text-red-500': count > 300 }">
+                                        <span x-text="count"></span> / 300
+                                    </div>
                                 </div>
                             </div>
                         </div>
