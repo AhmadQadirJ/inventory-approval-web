@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <a href="{{ route('approval') }}" class="inline-flex items-center mb-4 text-gray-600 hover:text-gray-900">
+            <a href="{{ route('approval.index') }}" class="inline-flex items-center mb-4 text-gray-600 hover:text-gray-900">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 Return
             </a>
@@ -129,7 +129,7 @@
                             </div>
 
                             <div class="mt-6 flex justify-between items-center">
-                                <a href="{{ route('approval') }}" class="px-8 py-2 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Kembali</a>
+                                <a href="{{ route('approval.index') }}" class="px-8 py-2 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Kembali</a>
                                 <div class="space-x-4">
                                     <button type="submit" formaction="{{ route('approval.approve', $submission->proposal_id) }}" class="px-8 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700">Approve</button>
                                     <button type="submit" formaction="{{ route('approval.reject', $submission->proposal_id) }}" class="px-8 py-2 bg-yellow-500 text-white font-semibold rounded-md hover:bg-yellow-600">Reject</button>

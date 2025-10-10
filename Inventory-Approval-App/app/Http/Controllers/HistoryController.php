@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Collection;
 
 class HistoryController extends Controller
 {
@@ -15,66 +16,45 @@ class HistoryController extends Controller
     {
         $userId = Auth::id();
         $search = $request->input('search');
-        $statusFilter = $request->input('status_filter'); // Ambil input filter status
+        $statusFilter = $request->input('status_filter');
 
-        // 1. Ambil data dari kedua tabel, tambahkan filter pencarian jika ada
         $lendSubmissionsQuery = LendSubmission::where('user_id', $userId);
         $procureSubmissionsQuery = ProcureSubmission::where('user_id', $userId);
 
         if ($search) {
-            // Logika pencarian tetap sama
             $lendSubmissionsQuery->where(function ($query) use ($search) {
-                $query->where('proposal_id', 'like', "%{$search}%")
-                    ->orWhere('item_name', 'like', "%{$search}%")
-                    ->orWhere('purpose_title', 'like', "%{$search}%");
+                $query->where('proposal_id', 'like', "%{$search}%")->orWhere('item_name', 'like', "%{$search}%")->orWhere('purpose_title', 'like', "%{$search}%");
             });
             $procureSubmissionsQuery->where(function ($query) use ($search) {
-                $query->where('proposal_id', 'like', "%{$search}%")
-                    ->orWhere('item_name', 'like', "%{$search}%")
-                    ->orWhere('purpose_title', 'like', "%{$search}%");
+                $query->where('proposal_id', 'like', "%{$search}%")->orWhere('item_name', 'like', "%{$search}%")->orWhere('purpose_title', 'like', "%{$search}%");
             });
         }
 
         $lendSubmissions = $lendSubmissionsQuery->get();
         $procureSubmissions = $procureSubmissionsQuery->get();
 
-        // 2. Format dan gabungkan kedua koleksi data
-        $submissions = $lendSubmissions->map(function ($item) {
-            // ... (mapping data tetap sama)
-            return (object) [ 'id' => $item->proposal_id, 'type' => 'Peminjaman', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status ];
-        })->merge($procureSubmissions->map(function ($item) {
-            return (object) [ 'id' => $item->proposal_id, 'type' => 'Pengadaan', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status ];
-        }));
+        $mappedLend = $lendSubmissions->map(fn($item) => (object) ['id' => $item->proposal_id, 'type' => 'Peminjaman', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status]);
+        $mappedProcure = $procureSubmissions->map(fn($item) => (object) ['id' => $item->proposal_id, 'type' => 'Pengadaan', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status]);
 
-        // -- LOGIKA BARU UNTUK FILTER STATUS --
+        $submissions = new Collection(array_merge($mappedLend->all(), $mappedProcure->all()));
+
         if ($statusFilter) {
             $submissions = $submissions->filter(function ($submission) use ($statusFilter) {
-                // Untuk "Rejected" dan "Processed", kita cek awal katanya saja
                 if ($statusFilter === 'Rejected' || $statusFilter === 'Processed') {
                     return Str::startsWith($submission->status, $statusFilter);
                 }
-                // Untuk "Pending" dan "Accepted", kita cek kecocokan persis
                 return $submission->status === $statusFilter;
             });
         }
-        // -- AKHIR LOGIKA BARU --
 
         $submissions = $submissions->sortByDesc('date');
 
-        // 3. Hitung statistik (tetap sama, akan dihitung berdasarkan data yang sudah difilter)
         $pendingCount = $submissions->where('status', 'Pending')->count();
         $acceptedCount = $submissions->where('status', 'Accepted')->count();
         $rejectedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Rejected'))->count();
         $processedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Processed'))->count();
 
-        // 4. Kirim semua data ke view
-        return view('history.index', [
-            'submissions' => $submissions,
-            'pendingCount' => $pendingCount,
-            'acceptedCount' => $acceptedCount,
-            'rejectedCount' => $rejectedCount,
-            'processedCount' => $processedCount,
-        ]);
+        return view('history.index', compact('submissions', 'pendingCount', 'acceptedCount', 'rejectedCount', 'processedCount'));
     }
 
     public function show($proposal_id)

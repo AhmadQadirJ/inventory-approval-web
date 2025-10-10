@@ -28,34 +28,140 @@
                                 <div class="md:col-span-2">
                                     <x-input-label for="departemen" value="Departemen*" />
                                     <select id="departemen" name="departemen" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                        <option>IT</option>
-                                        <option>Finance</option>
-                                        <option>Advertisement</option>
+                                        <option>Operational</option>
+                                        <option>Human Resources</option>
+                                        <option>Finance & Acc Tax</option>
+                                        <option>Technology</option>
+                                        <option>Marketing & Creative</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
                         {{-- 2. Detail Barang --}}
-                        <div class="p-6 bg-gray-50 rounded-lg">
+                        <div class="p-6 rounded-lg border" 
+                            x-data="{
+                                branches: {{ json_encode(['Bandung', 'Jakarta', 'Surabaya']) }},
+                                selectedBranch: '',
+                                categories: [],
+                                selectedCategory: '',
+                                items: [],
+                                selectedItem: null,
+                                search: '',
+                                isLoadingCategories: false,
+                                isLoadingItems: false,
+
+                                fetchCategories() {
+                                    if (!this.selectedBranch) return;
+                                    this.isLoadingCategories = true;
+                                    this.categories = []; this.selectedCategory = ''; this.items = []; this.selectedItem = null;
+                                    fetch(`/api/inventory/categories?branch=${this.selectedBranch}`)
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            this.categories = data;
+                                            this.isLoadingCategories = false;
+                                        });
+                                },
+                                fetchItems() {
+                                    if (!this.selectedCategory) return;
+                                    this.isLoadingItems = true;
+                                    this.items = []; this.selectedItem = null;
+                                    fetch(`/api/inventory/items?branch=${this.selectedBranch}&kategori=${this.selectedCategory}`)
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            this.items = data;
+                                            this.isLoadingItems = false;
+                                        });
+                                },
+                                get filteredItems() {
+                                    if (this.search === '') {
+                                        return this.items;
+                                    }
+                                    return this.items.filter(item => 
+                                        item.nama.toLowerCase().includes(this.search.toLowerCase()) || 
+                                        item.kode.toLowerCase().includes(this.search.toLowerCase())
+                                    );
+                                }
+                            }">
+
                             <div class="flex items-center mb-4">
-                                <div class="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold">2</div>
-                                <h3 class="ml-4 text-lg font-semibold">Detail Barang</h3>
+                                <span class="bg-red-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-bold">2</span>
+                                <h3 class="ml-4 text-lg font-semibold text-gray-800">Detail Barang</h3>
                             </div>
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {{-- Dropdown 1: Branch --}}
                                 <div>
-                                    <x-input-label for="nama_barang" value="Nama Barang*" />
-                                    <select id="nama_barang" name="nama_barang" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                        <option>Proyektor</option>
-                                        <option>Laptop</option>
-                                        <option>Meja</option>
-                                        <option>Kursi</option>
+                                    <x-input-label for="branch" value="Pilih Branch*" />
+                                    <select id="branch" x-model="selectedBranch" @change="fetchCategories()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                        <option value="">-- Pilih Branch --</option>
+                                        <template x-for="branch in branches" :key="branch">
+                                            <option :value="branch" x-text="branch"></option>
+                                        </template>
                                     </select>
                                 </div>
+
+                                {{-- Dropdown 2: Kategori --}}
                                 <div>
-                                    <x-input-label for="jumlah" value="Jumlah Barang*" />
-                                    <x-text-input id="jumlah" name="jumlah" type="number" class="mt-1 block w-full" required />
+                                    <x-input-label for="kategori" value="Pilih Kategori Properti*" />
+                                    <select id="kategori" x-model="selectedCategory" @change="fetchItems()" :disabled="!selectedBranch || isLoadingCategories" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm disabled:bg-gray-100">
+                                        <option value="" x-show="!isLoadingCategories">-- Pilih Kategori --</option>
+                                        <option value="" x-show="isLoadingCategories">Memuat...</option>
+                                        <template x-for="category in categories" :key="category.kategori">
+                                            <option :value="category.kategori" x-text="category.kategori"></option>
+                                        </template>
+                                    </select>
                                 </div>
+                            </div>
+
+                            {{-- Dropdown 3: Properti (Searchable Dropdown) --}}
+                            <div class="mt-6" x-data="{ open: false }">
+                                <x-input-label for="item_search" value="Cari & Pilih Properti*" />
+
+                                <div x-show="selectedCategory && !isLoadingItems" class="relative">
+                                    {{-- Input yang terlihat oleh user --}}
+                                    <input 
+                                        @click="open = true" 
+                                        readonly
+                                        :value="selectedItem ? items.find(i => i.id === selectedItem)?.nama + ' (' + items.find(i => i.id === selectedItem)?.kode + ')' : ''"
+                                        placeholder="-- Klik untuk memilih properti --" 
+                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm cursor-pointer bg-white">
+
+                                    {{-- Dropdown yang berisi search dan hasil --}}
+                                    <div x-show="open" @click.away="open = false" x-cloak
+                                        class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+
+                                        {{-- Search Bar di dalam dropdown --}}
+                                        <input type="text" x-model="search" placeholder="Ketik untuk mencari..." 
+                                            class="w-full p-2 border-b focus:ring-0 focus:border-indigo-300">
+
+                                        {{-- Hasil Pencarian --}}
+                                        <template x-for="item in filteredItems" :key="item.id">
+                                            <div @click="selectedItem = item.id; open = false"
+                                                :class="{ 'bg-indigo-100': selectedItem === item.id }"
+                                                class="p-2 hover:bg-gray-100 cursor-pointer">
+                                                <span class="font-semibold" x-text="item.nama"></span>
+                                                <span class="text-sm text-gray-500 ml-2" x-text="`(${item.kode})`"></span>
+                                            </div>
+                                        </template>
+                                        <div x-show="filteredItems.length === 0" class="p-2 text-center text-gray-500">
+                                            Tidak ada properti yang cocok.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div x-show="isLoadingItems" class="mt-1 text-sm text-gray-500">
+                                    Memuat properti...
+                                </div>
+
+                                {{-- Hidden input untuk mengirim ID barang yang dipilih --}}
+                                <input type="hidden" name="inventory_id" x-model="selectedItem">
+                            </div>
+
+                            {{-- Input Jumlah Barang --}}
+                            <div class="mt-6">
+                                <x-input-label for="quantity" value="Jumlah Barang*" />
+                                <x-text-input id="quantity" name="quantity" type="number" class="mt-1 block w-full" required />
                             </div>
                         </div>
 

@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'has.approval.role' => \App\Http\Middleware\EnsureUserHasApprovalRole::class,
             'is.admin' => \App\Http\Middleware\EnsureUserIsAdmin::class, 
+            'can.manage.inventory' => \App\Http\Middleware\EnsureUserCanManageInventory::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

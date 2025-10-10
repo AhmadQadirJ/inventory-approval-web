@@ -31,29 +31,39 @@ class SubmissionController extends Controller
     public function storeLend(Request $request)
     {
         $validated = $request->validate([
-            'nama_lengkap' => 'required|string|max:255',
-            'nip' => 'required|string|max:255',
-            'departemen' => 'required|string',
-            'nama_barang' => 'required|string',
-            'jumlah' => 'required|integer|min:1',
-            'judul_peminjaman' => 'required|string|max:255',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'deskripsi_peminjaman' => 'required|string|max:300',
+            // Validasi lain tetap sama
+            'inventory_id' => 'required|exists:inventories,id',
+            'quantity' => 'required|integer|min:1',
+            'purpose_title' => 'required|string|max:255',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'description' => 'required|string|max:300',
         ]);
 
-        // 1. Buat record submission tanpa proposal_id terlebih dahulu
+        $user = auth()->user();
+        $item = Inventory::findOrFail($validated['inventory_id']);
+
+        // Cek ketersediaan stok
+        if ($item->qty < $validated['quantity']) {
+            return back()->withInput()->with('error', 'Stok barang tidak mencukupi untuk jumlah yang Anda pinjam.');
+        }
+
+        $lastSubmission = LendSubmission::latest('id')->first();
+        $nextId = $lastSubmission ? intval(substr($lastSubmission->proposal_id, 2)) + 1 : 1;
+
         $submission = LendSubmission::create([
-            'user_id' => auth()->id(),
-            'full_name' => $validated['nama_lengkap'],
-            'employee_id' => $validated['nip'],
-            'department' => $validated['departemen'],
-            'item_name' => $validated['nama_barang'],
-            'quantity' => $validated['jumlah'],
-            'purpose_title' => $validated['judul_peminjaman'],
-            'start_date' => $validated['tanggal_mulai'],
-            'end_date' => $validated['tanggal_selesai'],
-            'description' => $validated['deskripsi_peminjaman'],
+            'user_id' => $user->id,
+            'proposal_id' => 'A-' . $nextId,
+            'full_name' => $user->name,
+            'employee_id' => $user->employee_id,
+            'department' => $user->department,
+            'item_name' => $item->nama, // Ambil nama barang dari model Inventory
+            'quantity' => $validated['quantity'],
+            'purpose_title' => $validated['purpose_title'],
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'description' => $validated['description'],
+            'status' => 'Pending',
         ]);
 
         // 2. Buat proposal_id berdasarkan ID record yang baru dibuat, lalu simpan
