@@ -15,9 +15,9 @@
             line-height: 1.2;
         }
         .header { text-align: left; margin-bottom: 30px; }
-        .header h1 { color: #000; font-size: 36px; margin: 0; }
+        .header h1 { color: #000; font-size: 32px; margin: 0; }
         .header h1 span { color: red; }
-        .header p { margin: 0; font-size: 14px; }
+        .header p { margin: 0; font-size: 12px; }
 
         .info-table {
             width: 100%;
@@ -39,21 +39,21 @@
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
-            font-size: 10pt; /* Ukuran font di dalam tabel diperkecil */
+            font-size: 8pt; /* Ukuran font di dalam tabel diperkecil */
         }
         .content-table th {
             background-color: #f2f2f2;
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
         }
         .footer {
             position: fixed;
             bottom: 50px;
-            right: 25mm;
+            right: 0mm;
             text-align: right;
         }
         .signature-logo {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 900;
             color: #cccccc;
             margin-bottom: 15px;
@@ -162,6 +162,13 @@
             <td>Tanggal Penggunaan</td>
             <td>{{ \Carbon\Carbon::parse($submission->start_date)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($submission->end_date)->format('d/m/Y') }}</td>
         </tr>
+        {{-- Baris baru yang hanya muncul untuk proposal Peminjaman --}}
+        @if ($submission->type == 'Peminjaman')
+            <tr>
+                <td>Jam Penggunaan (Setiap Hari)</td>
+                <td>{{ \Carbon\Carbon::parse($submission->start_time)->format('H:i') }} s/d {{ \Carbon\Carbon::parse($submission->end_time)->format('H:i') }}</td>
+            </tr>
+        @endif
         <tr>
             <td>Deskripsi Pengajuan</td>
             <td>{{ $submission->type == 'Peminjaman' ? $submission->description : $submission->procurement_description }}</td>

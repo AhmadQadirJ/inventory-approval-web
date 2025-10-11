@@ -178,11 +178,32 @@
                                     <x-text-input id="judul_peminjaman" name="judul_peminjaman" type="text" class="mt-1 block w-full" required />
                                 </div>
                                 <div>
-                                    <x-input-label value="Tanggal Peminjaman*" />
-                                    <div class="flex items-center space-x-4 mt-1">
-                                        <x-text-input id="tanggal_mulai" name="tanggal_mulai" type="date" class="block w-full" required />
-                                        <span>sampai</span>
-                                        <x-text-input id="tanggal_selesai" name="tanggal_selesai" type="date" class="block w-full" required />
+                                    <div>
+                                        <x-input-label value="Periode Peminjaman*" />
+                                        <div class="mt-1 space-y-4">
+                                            {{-- Baris untuk Rentang Tanggal --}}
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Rentang Tanggal</label>
+                                                <div class="flex items-center space-x-2 mt-1">
+                                                    <x-text-input id="tanggal_mulai" name="tanggal_mulai" type="date" class="block w-full" required />
+                                                    <span class="text-gray-500">s/d</span>
+                                                    <x-text-input id="tanggal_selesai" name="tanggal_selesai" type="date" class="block w-full" required />
+                                                </div>
+                                            </div>
+
+                                            {{-- Baris untuk Rentang Jam --}}
+                                            <div>
+                                                <label class="text-sm font-medium text-gray-700">Jam Penggunaan (Setiap Hari)</label>
+                                                <div class="flex items-center space-x-2 mt-1">
+                                                    <x-text-input id="start_time" name="start_time" type="time" class="block w-full" required />
+                                                    <span class="text-gray-500">s/d</span>
+                                                    <x-text-input id="end_time" name="end_time" type="time" class="block w-full" required />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">
+                                            Rentang jam yang Anda pilih akan berlaku untuk setiap hari dalam periode tanggal peminjaman.
+                                        </p>
                                     </div>
                                 </div>
                                 <div x-data="{ count: 0 }" x-init="count = $refs.content.value.length">

@@ -12,7 +12,9 @@ class LendSubmission extends Model
     // Ganti 'item_name' dengan 'inventory_id'
     protected $fillable = [
         'proposal_id', 'user_id', 'full_name', 'employee_id', 'department', 'inventory_id',
-        'quantity', 'purpose_title', 'start_date', 'end_date', 'description', 'status',
+        'quantity', 'purpose_title', 'start_date', 'end_date', 
+        'start_time', 'end_time', // <-- Tambahkan ini
+        'description', 'status',
     ];
 
     // Tambahkan relasi ini

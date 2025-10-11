@@ -40,7 +40,9 @@ class SubmissionController extends Controller
             'quantity'             => 'required|integer|min:1',
             'judul_peminjaman'     => 'required|string|max:255',
             'tanggal_mulai'        => 'required|date',
+            'start_time'           => 'required',
             'tanggal_selesai'      => 'required|date|after_or_equal:tanggal_mulai',
+            'end_time'             => 'required',
             'deskripsi_peminjaman' => 'required|string|max:300',
         ]);
 
@@ -60,6 +62,8 @@ class SubmissionController extends Controller
             'purpose_title' => $validated['judul_peminjaman'],
             'start_date'    => $validated['tanggal_mulai'],
             'end_date'      => $validated['tanggal_selesai'],
+            'start_time'    => $validated['start_time'],
+            'end_time'      => $validated['end_time'],
             'description'   => $validated['deskripsi_peminjaman'],
         ]);
 

@@ -120,26 +120,46 @@
 
                     {{-- 3. Detail Pengajuan --}}
                     <div class="p-6 bg-gray-50 rounded-lg">
-                         <div class="flex items-center mb-4">
+                        <div class="flex items-center mb-4">
                             <div class="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold">3</div>
-                            <h3 class="ml-4 text-lg font-semibold">Detail {{ $submission->type }}</h3>
+                            <h3 class="ml-4 text-lg font-semibold">Detail {{ $submission->type == 'Peminjaman' ? 'Peminjaman' : 'Pengadaan' }}</h3>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                            <div class="md:col-span-1">
-                                <label class="font-medium text-gray-500">Judul Tujuan {{ $submission->type }}</label>
+                        <div class="space-y-4 text-sm">
+                            <div>
+                                <label class="font-medium text-gray-500">Judul Tujuan</label>
                                 <p class="text-gray-800 mt-1">{{ $submission->purpose_title }}</p>
                             </div>
+
                             <div>
-                                <label class="font-medium text-gray-500">Dari Tanggal</label>
-                                <p class="text-gray-800 mt-1">{{ \Carbon\Carbon::parse($submission->start_date)->format('d/m/Y') }}</p>
+                                <label class="font-medium text-gray-500">Rentang Tanggal</label>
+                                <p class="text-gray-800 mt-1">
+                                    {{ \Carbon\Carbon::parse($submission->start_date)->format('d/m/Y') }}
+                                    <span class="text-gray-500">sampai</span>
+                                    {{ \Carbon\Carbon::parse($submission->end_date)->format('d/m/Y') }}
+                                </p>
                             </div>
+
+                            {{-- Hanya tampilkan jam jika proposalnya adalah Peminjaman --}}
+                            @if ($submission instanceof \App\Models\LendSubmission)
+                                <div>
+                                    <label class="font-medium text-gray-500">Jam Penggunaan (Setiap Hari)</label>
+                                    <p class="text-gray-800 mt-1">
+                                        {{ \Carbon\Carbon::parse($submission->start_time)->format('H:i') }}
+                                        <span class="text-gray-500">sampai</span>
+                                        {{ \Carbon\Carbon::parse($submission->end_time)->format('H:i') }}
+                                    </p>
+                                </div>
+                            @endif
+
                             <div>
-                                <label class="font-medium text-gray-500">Sampai Tanggal</label>
-                                <p class="text-gray-800 mt-1">{{ \Carbon\Carbon::parse($submission->end_date)->format('d/m/Y') }}</p>
-                            </div>
-                            <div class="col-span-full">
-                                <label class="font-medium text-gray-500">Deskripsi {{ $submission->type }}</label>
-                                <p class="text-gray-800 mt-1 whitespace-pre-wrap">{{ $submission->type == 'Peminjaman' ? $submission->description : $submission->procurement_description }}</p>
+                                <label class="font-medium text-gray-500">Deskripsi</label>
+                                <p class="text-gray-800">
+                                    @if ($submission instanceof \App\Models\LendSubmission)
+                                        {{ $submission->description }}
+                                    @elseif ($submission instanceof \App\Models\ProcureSubmission)
+                                        {{ $submission->procurement_description }}
+                                    @endif
+                                </p>
                             </div>
                         </div>
                     </div>

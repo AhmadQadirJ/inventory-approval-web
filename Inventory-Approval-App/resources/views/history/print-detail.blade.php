@@ -182,6 +182,15 @@
                 <td>Tanggal Penggunaan</td>
                 <td>{{ \Carbon\Carbon::parse($submission->start_date)->format('d F Y') }} - {{ \Carbon\Carbon::parse($submission->end_date)->format('d F Y') }}</td>
             </tr>
+
+            {{-- Baris baru yang hanya muncul untuk proposal Peminjaman --}}
+            @if ($submission->type == 'Peminjaman')
+                <tr>
+                    <td>Jam Penggunaan</td>
+                    <td>{{ \Carbon\Carbon::parse($submission->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($submission->end_time)->format('H:i') }}</td>
+                </tr>
+            @endif
+
             <tr>
                 <td>Deskripsi Pengajuan</td>
                 <td>{{ $submission->type == 'Peminjaman' ? $submission->description : $submission->procurement_description }}</td>
