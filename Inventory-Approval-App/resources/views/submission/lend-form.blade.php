@@ -20,6 +20,7 @@
                                 <div>
                                     <x-input-label for="nama_lengkap" value="Nama Lengkap*" />
                                     <x-text-input id="nama_lengkap" name="nama_lengkap" type="text" class="mt-1 block w-full" required />
+                                    <x-input-error :messages="$errors->get('nama_lengkap')" class="mt-2" />
                                 </div>
                                 <div>
                                     <x-input-label for="nip" value="ID Karyawan/NIP*" />

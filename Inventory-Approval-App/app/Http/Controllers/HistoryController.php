@@ -18,23 +18,53 @@ class HistoryController extends Controller
         $search = $request->input('search');
         $statusFilter = $request->input('status_filter');
 
-        $lendSubmissionsQuery = LendSubmission::where('user_id', $userId);
+        // 1. Ambil data Peminjaman (Lend) dengan relasi ke Inventory
+        $lendSubmissionsQuery = LendSubmission::with('inventory')->where('user_id', $userId);
+        
+        // Ambil data Pengadaan (Procure)
         $procureSubmissionsQuery = ProcureSubmission::where('user_id', $userId);
 
         if ($search) {
+            // Modifikasi query pencarian untuk Lend
             $lendSubmissionsQuery->where(function ($query) use ($search) {
-                $query->where('proposal_id', 'like', "%{$search}%")->orWhere('item_name', 'like', "%{$search}%")->orWhere('purpose_title', 'like', "%{$search}%");
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    // Cari di dalam relasi 'inventory' untuk nama barang
+                    ->orWhereHas('inventory', function ($q) use ($search) {
+                        $q->where('nama', 'like', "%{$search}%");
+                    })
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
             });
+            
+            // Query pencarian untuk Procure tetap sama
             $procureSubmissionsQuery->where(function ($query) use ($search) {
-                $query->where('proposal_id', 'like', "%{$search}%")->orWhere('item_name', 'like', "%{$search}%")->orWhere('purpose_title', 'like', "%{$search}%");
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
             });
         }
 
         $lendSubmissions = $lendSubmissionsQuery->get();
         $procureSubmissions = $procureSubmissionsQuery->get();
 
-        $mappedLend = $lendSubmissions->map(fn($item) => (object) ['id' => $item->proposal_id, 'type' => 'Peminjaman', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status]);
-        $mappedProcure = $procureSubmissions->map(fn($item) => (object) ['id' => $item->proposal_id, 'type' => 'Pengadaan', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status]);
+        // 2. Modifikasi mapping untuk Lend agar mengambil nama dari relasi
+        $mappedLend = $lendSubmissions->map(fn($item) => (object) [
+            'id' => $item->proposal_id,
+            'type' => 'Peminjaman',
+            'item' => $item->inventory->nama, // <-- PERUBAHAN UTAMA
+            'purpose' => $item->purpose_title,
+            'date' => $item->created_at->format('d/m/Y'),
+            'status' => $item->status
+        ]);
+        
+        // Mapping untuk Procure tetap sama
+        $mappedProcure = $procureSubmissions->map(fn($item) => (object) [
+            'id' => $item->proposal_id,
+            'type' => 'Pengadaan',
+            'item' => $item->item_name,
+            'purpose' => $item->purpose_title,
+            'date' => $item->created_at->format('d/m/Y'),
+            'status' => $item->status
+        ]);
 
         $submissions = new Collection(array_merge($mappedLend->all(), $mappedProcure->all()));
 

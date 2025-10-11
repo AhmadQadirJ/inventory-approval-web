@@ -21,26 +21,49 @@
                     <div class="text-3xl font-bold text-gray-900">{{ $waitingForApprovalCount }}</div>
                 </div>
 
-                {{-- Search & Filter --}}
-                <form action="{{ route('approval.index') }}" method="GET" class="flex justify-between items-center mb-4">
-                    {{-- Search Bar Section --}}
-                    <div class="flex items-center w-full md:w-1/2">
-                        <label for="search" class="text-sm font-medium text-gray-700 mr-2">Search :</label>
-                        <input type="text" id="search" name="search" value="{{ request('search') }}" class="w-full border-gray-300 bg-gray-50 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        <button type="submit" class="ml-2 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700">Search</button>
-                        @if(request('search') || request('waiting'))
-                            <a href="{{ route('approval.index') }}" class="ml-2 text-sm text-gray-600 hover:underline">Reset</a>
-                        @endif
-                    </div>
+                {{-- Search and Filter Bar --}}
+                <div class="mb-4">
+                    <form action="{{ route('approval.index') }}" method="GET" class="flex flex-col md:flex-row md:items-end md:space-x-4">
+                        {{-- Search Input --}}
+                        <div class="flex-grow">
+                            <label for="search" class="block text-sm font-medium text-gray-700">Search:</label>
+                            <input type="text" id="search" name="search" value="{{ request('search') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
 
-                    {{-- Checkbox Filter Section --}}
-                    <div class="hidden md:flex items-center">
+                        {{-- Status Filter Dropdown --}}
+                        <div class="mt-2 md:mt-0">
+                            <label for="status_filter" class="block text-sm font-medium text-gray-700">Filter by Status:</label>
+                            <select name="status_filter" id="status_filter" onchange="this.form.submit()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">All Statuses</option>
+                                <option value="Pending"   @if(request('status_filter') == 'Pending') selected @endif>Show Only Pending</option>
+                                <option value="Accepted"  @if(request('status_filter') == 'Accepted') selected @endif>Show Only Accepted</option>
+                                <option value="Rejected"  @if(request('status_filter') == 'Rejected') selected @endif>Show Only Rejected</option>
+                                <option value="Processed" @if(request('status_filter') == 'Processed') selected @endif>Show Only Processed</option>
+                            </select>
+                        </div>
+
+                        {{-- Action Buttons --}}
+                        <div class="flex items-end space-x-2 mt-4 md:mt-0">
+                            <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700">Filter</button>
+                            @if(request('search') || request('status_filter'))
+                                <a href="{{ route('approval.index') }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">Reset</a>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+
+                {{-- Checkbox "Show Only Waiting for Approval" --}}
+                <div class="flex justify-end items-center mb-4">
+                    <form action="{{ route('approval.index') }}" method="GET" id="waiting-filter-form">
+                        <input type="hidden" name="search" value="{{ request('search') }}">
+                        <input type="hidden" name="status_filter" value="{{ request('status_filter') }}">
                         <label for="show_only_waiting" class="text-sm font-medium text-gray-700 mr-2">Show Only 'Waiting For Approval'</label>
                         <input type="checkbox" id="show_only_waiting" name="waiting" value="1" 
-                            onchange="this.form.submit()" {{ request('waiting') ? 'checked' : '' }}
-                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                    </div>
-                </form>
+                                onchange="document.getElementById('waiting-filter-form').submit()" 
+                                @if(request('waiting')) checked @endif
+                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                    </form>
+                </div>
 
                 {{-- Tabel Data --}}
                 <div class="overflow-x-auto">

@@ -17,27 +17,53 @@ class ApprovalController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $statusFilter = $request->input('status_filter');
         $waitingOnly = $request->input('waiting');
 
-        $lendSubmissionsQuery = LendSubmission::query();
+        // Eager load relasi 'inventory' untuk efisiensi
+        $lendSubmissionsQuery = LendSubmission::with('inventory');
         $procureSubmissionsQuery = ProcureSubmission::query();
 
         if ($search) {
             $lendSubmissionsQuery->where(function ($query) use ($search) {
-                $query->where('proposal_id', 'like', "%{$search}%")->orWhere('item_name', 'like', "%{$search}%")->orWhere('purpose_title', 'like', "%{$search}%");
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%")
+                    ->orWhereHas('inventory', function ($q) use ($search) {
+                        $q->where('nama', 'like', "%{$search}%");
+                    });
             });
             $procureSubmissionsQuery->where(function ($query) use ($search) {
-                $query->where('proposal_id', 'like', "%{$search}%")->orWhere('item_name', 'like', "%{$search}%")->orWhere('purpose_title', 'like', "%{$search}%");
+                $query->where('proposal_id', 'like', "%{$search}%")
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%");
             });
         }
 
         $lendSubmissions = $lendSubmissionsQuery->get();
         $procureSubmissions = $procureSubmissionsQuery->get();
 
-        $mappedLend = $lendSubmissions->map(fn($item) => (object) ['id' => $item->proposal_id, 'type' => 'Peminjaman', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status]);
-        $mappedProcure = $procureSubmissions->map(fn($item) => (object) ['id' => $item->proposal_id, 'type' => 'Pengadaan', 'item' => $item->item_name, 'purpose' => $item->purpose_title, 'date' => $item->created_at->format('d/m/Y'), 'status' => $item->status]);
+        // Mapping data peminjaman
+        $mappedLend = $lendSubmissions->map(fn($item) => (object) [
+            'id' => $item->proposal_id,
+            'type' => 'Peminjaman',
+            'item' => $item->inventory->nama, // Mengambil dari relasi
+            'purpose' => $item->purpose_title,
+            'date' => $item->created_at->format('d/m/Y'),
+            'status' => $item->status
+        ]);
 
-        $submissions = new Collection(array_merge($mappedLend->all(), $mappedProcure->all()));
+        // Mapping data pengadaan
+        $mappedProcure = $procureSubmissions->map(fn($item) => (object) [
+            'id' => $item->proposal_id,
+            'type' => 'Pengadaan',
+            'item' => $item->item_name,
+            'purpose' => $item->purpose_title,
+            'date' => $item->created_at->format('d/m/Y'),
+            'status' => $item->status
+        ]);
+
+        // Gabungkan kedua hasil mapping
+        $submissions = new \Illuminate\Support\Collection(array_merge($mappedLend->all(), $mappedProcure->all()));
 
         $userRole = auth()->user()->role;
         if ($waitingOnly) {
@@ -52,17 +78,37 @@ class ApprovalController extends Controller
             });
         }
 
+        if ($statusFilter) {
+            $submissions = $submissions->filter(function ($submission) use ($statusFilter) {
+                if (in_array($statusFilter, ['Rejected', 'Processed'])) {
+                    return Str::startsWith($submission->status, $statusFilter);
+                }
+                return $submission->status === $statusFilter;
+            });
+        }
+
         $submissions = $submissions->sortByDesc('date');
 
         $waitingForApprovalCount = 0;
         switch ($userRole) {
-            case 'General Affair': $waitingForApprovalCount = $submissions->whereIn('status', ['Pending', 'Processed - GA'])->count(); break;
-            case 'Manager': $waitingForApprovalCount = $submissions->where('status', 'Processed - Manager')->count(); break;
-            case 'Finance': $waitingForApprovalCount = $submissions->where('status', 'Processed - Finance')->count(); break;
-            case 'COO': $waitingForApprovalCount = $submissions->where('status', 'Processed - COO')->count(); break;
+            case 'General Affair':
+                $waitingForApprovalCount = $submissions->whereIn('status', ['Pending', 'Processed - GA'])->count();
+                break;
+            case 'Manager':
+                $waitingForApprovalCount = $submissions->where('status', 'Processed - Manager')->count();
+                break;
+            case 'Finance':
+                $waitingForApprovalCount = $submissions->where('status', 'Processed - Finance')->count();
+                break;
+            case 'COO':
+                $waitingForApprovalCount = $submissions->where('status', 'Processed - COO')->count();
+                break;
         }
 
-        return view('approval.index', compact('submissions', 'waitingForApprovalCount'));
+        return view('approval.index', [
+            'submissions' => $submissions,
+            'waitingForApprovalCount' => $waitingForApprovalCount,
+        ]);
     }
 
     public function act($proposal_id)
@@ -86,11 +132,11 @@ class ApprovalController extends Controller
             $submission->status = 'Processed - GA';
             $submission->save();
 
-            return redirect()->route('approval')->with('success', 'Proposal ' . $proposal_id . ' has been acted upon.');
+            return redirect()->route('approval.index')->with('success', 'Proposal ' . $proposal_id . ' has been acted upon.');
         }
 
         // Jika tidak, kembalikan dengan pesan error
-        return redirect()->route('approval')->with('error', 'Invalid action or proposal not found.');
+        return redirect()->route('approval.index')->with('error', 'Invalid action or proposal not found.');
     }
 
     public function process($proposal_id)
@@ -187,7 +233,7 @@ class ApprovalController extends Controller
         }
         // --- AKHIR PERUBAHAN ---
 
-        return redirect()->route('approval')->with('success', "Proposal $proposal_id has been approved for the next step.");
+        return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been approved for the next step.");
     }
 
     public function reject(Request $request, $proposal_id)
@@ -221,7 +267,7 @@ class ApprovalController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        return redirect()->route('approval')->with('success', "Proposal $proposal_id has been rejected.");
+        return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been rejected.");
     }
 
     public function printPdf($proposal_id)

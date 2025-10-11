@@ -127,31 +127,53 @@
             </tr>
         </table>
 
-        {{-- DETAIL BARANG & TUJUAN --}}
-        <h2>Detail Barang & Tujuan</h2>
+        <h2>Detail Barang</h2>
         <table class="detail-table">
-            <tr>
-                <td>Nama Barang</td>
-                <td>{{ $submission->item_name }}</td>
-            </tr>
-            <tr>
-                <td>Jumlah</td>
-                <td>{{ $submission->quantity }} Unit</td>
-            </tr>
-             @if ($submission->type == 'Pengadaan')
+            @if ($submission->type == 'Peminjaman')
+                <tr>
+                    <td>Nama Properti</td>
+                    <td>{{ $submission->inventory->nama }}</td>
+                </tr>
+                <tr>
+                    <td>Kode Properti</td>
+                    <td>{{ $submission->inventory->kode }}</td>
+                </tr>
+                @if ($submission->inventory->kategori !== 'Ruangan')
+                    <tr>
+                        <td>Brand Properti</td>
+                        <td>{{ $submission->inventory->brand ?? '-' }}</td>
+                    </tr>
+                @endif
+                <tr>
+                    <td>Jumlah Dipinjam</td>
+                    <td>{{ $submission->quantity }} Unit</td>
+                </tr>
+            @else {{-- Pengadaan --}}
+                <tr>
+                    <td>Nama Barang</td>
+                    <td>{{ $submission->item_name }}</td>
+                </tr>
+                <tr>
+                    <td>Jumlah</td>
+                    <td>{{ $submission->quantity }} Unit</td>
+                </tr>
                 <tr>
                     <td>Estimasi Harga</td>
                     <td>Rp {{ number_format($submission->estimated_price, 0, ',', '.') }}</td>
                 </tr>
-                 <tr>
+                <tr>
                     <td>Link Referensi</td>
                     <td>{{ $submission->reference_link }}</td>
                 </tr>
-                 <tr>
+                <tr>
                     <td>Deskripsi Barang</td>
                     <td>{{ $submission->item_description }}</td>
                 </tr>
             @endif
+        </table>
+
+        <h2>Detail Tujuan Pengajuan</h2>
+        <table class="detail-table">
             <tr>
                 <td>Judul Tujuan</td>
                 <td>{{ $submission->purpose_title }}</td>

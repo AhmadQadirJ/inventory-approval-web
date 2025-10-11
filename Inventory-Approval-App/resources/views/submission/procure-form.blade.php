@@ -35,9 +35,11 @@
                                 <div class="md:col-span-2">
                                     <x-input-label for="departemen" value="Departemen*" />
                                     <select id="departemen" name="departemen" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                        <option>IT</option>
-                                        <option>Finance</option>
-                                        <option>Advertisement</option>
+                                        <option>Operational</option>
+                                        <option>Human Resources</option>
+                                        <option>Finance & Acc Tax</option>
+                                        <option>Technology</option>
+                                        <option>Marketing & Creative</option>
                                     </select>
                                 </div>
                             </div>

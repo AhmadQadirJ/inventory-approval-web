@@ -66,17 +66,44 @@
                             <div class="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold">2</div>
                             <h3 class="ml-4 text-lg font-semibold">Detail Barang</h3>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                            <div>
-                                <label class="font-medium text-gray-500">Nama Barang</label>
-                                <p class="text-gray-800 mt-1">{{ $submission->item_name }}</p>
-                            </div>
-                            <div>
-                                <label class="font-medium text-gray-500">Jumlah Barang</label>
-                                <p class="text-gray-800 mt-1">{{ $submission->quantity }} Unit</p>
-                            </div>
-                            {{-- Kolom khusus Pengadaan --}}
-                            @if ($submission->type == 'Pengadaan')
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+
+                            {{-- Tampilan jika proposalnya adalah PEMINJAMAN --}}
+                            @if ($submission instanceof \App\Models\LendSubmission)
+                                <div>
+                                    <label class="font-medium text-gray-500">Nama Properti</label>
+                                    <p class="text-gray-800 mt-1">{{ $submission->inventory->nama }}</p>
+                                </div>
+                                <div>
+                                    <label class="font-medium text-gray-500">Kode Properti</label>
+                                    <p class="text-gray-800 mt-1">{{ $submission->inventory->kode }}</p>
+                                </div>
+                                <div>
+                                    <label class="font-medium text-gray-500">Branch Properti</label>
+                                    <p class="text-gray-800 mt-1">{{ $submission->inventory->branch }}</p>
+                                </div>
+                                
+                                @if ($submission->inventory->kategori !== 'Ruangan')
+                                    <div>
+                                        <label class="font-medium text-gray-500">Brand Properti</label>
+                                        <p class="text-gray-800 mt-1">{{ $submission->inventory->brand ?? '-' }}</p>
+                                    </div>
+                                @endif
+                                <div>
+                                    <label class="font-medium text-gray-500">Jumlah yang Dipinjam</label>
+                                    <p class="text-gray-800 mt-1">{{ $submission->quantity }} Unit</p>
+                                </div>
+
+                            {{-- Tampilan jika proposalnya adalah PENGADAAN --}}
+                            @elseif ($submission instanceof \App\Models\ProcureSubmission)
+                                <div>
+                                    <label class="font-medium text-gray-500">Nama Barang</label>
+                                    <p class="text-gray-800 mt-1">{{ $submission->item_name }}</p>
+                                </div>
+                                <div>
+                                    <label class="font-medium text-gray-500">Jumlah Barang</label>
+                                    <p class="text-gray-800 mt-1">{{ $submission->quantity }} Unit</p>
+                                </div>
                                 <div>
                                     <label class="font-medium text-gray-500">Estimasi Harga</label>
                                     <p class="text-gray-800 mt-1">Rp {{ number_format($submission->estimated_price, 0, ',', '.') }}</p>
@@ -87,9 +114,10 @@
                                 </div>
                                 <div class="col-span-full">
                                     <label class="font-medium text-gray-500">Deskripsi Barang</label>
-                                    <p class="text-gray-800 mt-1">{{ $submission->item_description }}</p>
+                                    <p class="text-gray-800 mt-1 whitespace-pre-wrap">{{ $submission->item_description }}</p>
                                 </div>
                             @endif
+
                         </div>
                     </div>
 
