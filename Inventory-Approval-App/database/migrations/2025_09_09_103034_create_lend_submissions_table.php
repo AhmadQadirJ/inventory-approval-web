@@ -23,9 +23,14 @@ return new class extends Migration
             $table->date('start_date');
             $table->date('end_date');
             $table->text('description');
-            $table->string('status')->default('pending'); // pending, approved, rejected, completed
+            $table->string('status')
+              ->default('Pending')
+              ->check(fn ($table) => in_array($table->status, ['Pending', 'Processed - GA', 'Processed - Manager', 'Processed - Finance', 'Processed - COO', 'Accepted', 'Rejected - General', 'Rejected - Manager', 'Rejected - Finance', 'Rejected - COO'])); // pending, approved, rejected, completed
             $table->timestamps();
+            
+
         });
+        
     }
 
     /**

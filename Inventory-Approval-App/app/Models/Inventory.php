@@ -10,4 +10,8 @@ class Inventory extends Model
         'kode', 'nama', 'brand', 'kategori', 'harga', 'branch',
         'tahun_beli', 'nama_vendor', 'vendor_link', 'qty', 'deskripsi', 'gambar'
     ];
+    public function units()
+    {
+        return $this->hasMany(InventoryUnit::class);
+    }
 }

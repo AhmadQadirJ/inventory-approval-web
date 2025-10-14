@@ -26,7 +26,7 @@ class DashboardController extends Controller
             return (object) [
                 'id' => $item->proposal_id,
                 'type' => 'Peminjaman',
-                'item' => $item->inventory->nama, // <-- PERUBAHAN UTAMA
+                'item' => $item->inventory?->nama, // <-- PERUBAHAN UTAMA
                 'purpose' => $item->purpose_title,
                 'date' => $item->created_at,
                 'status' => $item->status,

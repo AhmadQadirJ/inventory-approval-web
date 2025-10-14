@@ -10,9 +10,12 @@ return new class extends Migration
     {
         Schema::table('lend_submissions', function (Blueprint $table) {
             // Hapus kolom lama
-            $table->dropColumn('item_name');
+            if (Schema::hasColumn('lend_submissions', 'item_name')) {
+             $table->dropColumn('item_name');
+            }
             // Tambahkan kolom baru sebagai foreign key ke tabel inventories
-            $table->foreignId('inventory_id')->after('department')->constrained()->onDelete('cascade');
+            $table->foreignId('inventory_id')->nullable()->after('department')->constrained()->onDelete('cascade');
+            
         });
     }
 

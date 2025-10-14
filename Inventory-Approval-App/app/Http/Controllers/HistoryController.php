@@ -50,7 +50,7 @@ class HistoryController extends Controller
         $mappedLend = $lendSubmissions->map(fn($item) => (object) [
             'id' => $item->proposal_id,
             'type' => 'Peminjaman',
-            'item' => $item->inventory->nama, // <-- PERUBAHAN UTAMA
+            'item' => $item->inventory?->nama, // <-- PERUBAHAN UTAMA
             'purpose' => $item->purpose_title,
             'date' => $item->created_at->format('d/m/Y'),
             'status' => $item->status

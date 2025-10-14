@@ -4,6 +4,7 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ReservationController; 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\UserManagementController;
@@ -43,6 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
     Route::get('/inventory/create', [InventoryController::class, 'create'])->name('inventory.create')->middleware('can.manage.inventory'); // Create harus di atas {inventory}
     Route::get('/inventory/{inventory}', [InventoryController::class, 'show'])->name('inventory.show');
+    Route::get('/inventory/{inventory}/reservation', [ReservationController::class, 'index'])->name('inventory.reservation.index');
 
     // Route yang hanya bisa diakses oleh GA dan Admin
     Route::middleware('can.manage.inventory')->group(function () {

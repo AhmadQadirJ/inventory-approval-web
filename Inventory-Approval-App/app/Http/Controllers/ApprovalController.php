@@ -46,7 +46,7 @@ class ApprovalController extends Controller
         $mappedLend = $lendSubmissions->map(fn($item) => (object) [
             'id' => $item->proposal_id,
             'type' => 'Peminjaman',
-            'item' => $item->inventory->nama, // Mengambil dari relasi
+            'item' => $item->inventory?->nama, // Mengambil dari relasi
             'purpose' => $item->purpose_title,
             'date' => $item->created_at->format('d/m/Y'),
             'status' => $item->status

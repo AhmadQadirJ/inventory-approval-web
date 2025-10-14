@@ -45,6 +45,12 @@
                                             <strong class="text-gray-500">Vendor:</strong>
                                             <a href="{{ $inventory->vendor_link }}" target="_blank" class="text-blue-600 hover:underline">{{ $inventory->nama_vendor ?? '-' }}</a>
                                         </div>
+                                        <div class="mt-6">
+                                            <a href="{{ route('inventory.reservation.index', $inventory) }}" 
+                                            class="inline-flex items-center px-4 py-3 bg-red-600 border border-transparent rounded-md font-semibold text-sm text-white uppercase tracking-wider hover:bg-red-700 transition ease-in-out duration-150">
+                                                Check Availability
+                                            </a>
+                                        </div>
                                     @endif
                                 </div>
                             </div>

@@ -9,18 +9,21 @@ class LendSubmission extends Model
 {
     use HasFactory;
 
-    // Ganti 'item_name' dengan 'inventory_id'
     protected $fillable = [
         'proposal_id', 'user_id', 'full_name', 'employee_id', 'department', 'inventory_id',
         'quantity', 'purpose_title', 'start_date', 'end_date', 
-        'start_time', 'end_time', // <-- Tambahkan ini
+        'start_time', 'end_time',
         'description', 'status',
     ];
 
-    // Tambahkan relasi ini
     public function inventory()
     {
         return $this->belongsTo(Inventory::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class); 
     }
 
     public function timelines()
