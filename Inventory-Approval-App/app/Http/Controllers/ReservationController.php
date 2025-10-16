@@ -1,88 +1,89 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Inventory;
-use App\Models\LendSubmission; // Untuk mengambil data reservasi
-use App\Models\User; // Asumsi relasi user ada
+use App\Models\LendSubmission;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Routing\Controller;
 
 class ReservationController extends Controller
 {
     public function index(Inventory $inventory, Request $request)
     {
-        // --- 1. SETTING TANGGAL & KALENDER ---
-        $selectedDate = $request->input('date') 
-            ? Carbon::parse($request->input('date')) 
-            : Carbon::today();
+        // --- 1. PENGATURAN TANGGAL & FILTER ---
+        $selectedDate = $request->input('date') ? Carbon::parse($request->input('date')) : Carbon::today();
+        $activeOnlyToday = $request->input('active_today'); // Ambil status checkbox
 
-        $now = Carbon::now();
-        $startOfMonth = $now->copy()->startOfMonth();
-        $endOfMonth = $now->copy()->endOfMonth();
-        
-        // --- 2. LOGIKA HISTORY RESERVASI (Untuk Tabel History) ---
-        
-        // Ambil semua reservasi 'Accepted' atau 'Pending' untuk item ini
-        $activeSubmissions = LendSubmission::where('inventory_id', $inventory->id)
-            ->whereIn('status', ['Accepted', 'Pending'])
-            ->with('user') // Eager load relasi User
-            ->whereDate('end_date', '>=', Carbon::today()) 
-            ->orderBy('start_date')
-            ->get();
+        // Data untuk kalender
+        $startOfMonth = $selectedDate->copy()->startOfMonth();
+        $endOfMonth = $selectedDate->copy()->endOfMonth();
+        $dateRange = CarbonPeriod::create($startOfMonth, $endOfMonth);
 
+        // --- 2. LOGIKA RIWAYAT PEMINJAMAN (Sisi Kanan) ---
+        $query = LendSubmission::where('inventory_id', $inventory->id)
+            ->where('status', 'Accepted')
+            ->with('user')
+            ->orderBy('start_date');
+
+        // Terapkan filter jika checkbox aktif
+        if ($activeOnlyToday) {
+            $query->whereDate('start_date', '<=', $selectedDate)
+                  ->whereDate('end_date', '>=', $selectedDate);
+        }
+        
+        $activeSubmissions = $query->get();
+            
         $reservationHistory = $activeSubmissions->map(function ($submission) {
             return [
-                'proposal_id' => $submission->proposal_id,
-                'user_name' => $submission->user->name ?? 'User Unknown',
-                'quantity' => $submission->quantity,
-                'period' => Carbon::parse($submission->start_date)->format('d/m') . ' - ' . Carbon::parse($submission->end_date)->format('d/m/Y'),
-                'time' => $submission->start_time . ' - ' . $submission->end_time,
-                'status' => $submission->status
+                'proposal_id'   => $submission->proposal_id,
+                'user_name'     => $submission->full_name,
+                'department'    => $submission->department,
+                'purpose_title' => $submission->purpose_title,
+                'period'        => Carbon::parse($submission->start_date)->format('d/m/Y') . ' - ' . Carbon::parse($submission->end_date)->format('d/m/Y'),
+                'time'          => \Carbon\Carbon::parse($submission->start_time)->format('H:i') . ' - ' . \Carbon\Carbon::parse($submission->end_time)->format('H:i'),
+                'status'        => $submission->status
             ];
         });
 
-        // --- 3. LOGIKA SLOT WAKTU (Untuk List Ketersediaan) ---
-        
+        // --- 3. LOGIKA SLOT WAKTU (Sisi Kiri) ---
         $availableSlots = [];
-        $startTime = Carbon::createFromTimeString('08:00:00');
-        $endTime = Carbon::createFromTimeString('17:00:00');
-        $currentSlot = $startTime->copy();
+        $startTime = Carbon::createFromTimeString('07:00:00');
+        $endTime = Carbon::createFromTimeString('22:00:00');
+        $timeIntervals = CarbonPeriod::create($startTime, '30 minutes', $endTime);
 
-        while ($currentSlot->lessThan($endTime)) {
-            $slotStart = $currentSlot->copy();
-            $slotEnd = $currentSlot->copy()->addHour();
+        foreach ($timeIntervals as $slotStart) {
+            if ($slotStart->eq($endTime)) continue;
+
+            $slotEnd = $slotStart->copy()->addMinutes(30);
             $totalStock = $inventory->qty;
+
+            // Filter submission yang bentrok dengan tanggal dan slot jam ini
+            $conflictingSubmissions = $activeSubmissions->filter(function ($sub) use ($selectedDate, $slotStart, $slotEnd) {
+                $submissionPeriod = CarbonPeriod::create($sub->start_date, $sub->end_date);
+                $timeOverlap = (Carbon::parse($sub->start_time)->lt($slotEnd)) && (Carbon::parse($sub->end_time)->gt($slotStart));
+                return $submissionPeriod->contains($selectedDate) && $timeOverlap;
+            });
             
-            // Hitung unit yang dipinjam pada slot ini
-            $stockBooked = $activeSubmissions->filter(function ($sub) use ($selectedDate, $slotStart, $slotEnd) {
-                // Cek apakah tanggal reservasi mencakup selectedDate
-                $dateOverlap = $selectedDate->between(Carbon::parse($sub->start_date), Carbon::parse($sub->end_date));
-                
-                // Cek apakah jam reservasi mencakup slot waktu ini
-                $timeOverlap = ($sub->start_time < $slotEnd->format('H:i:s')) && ($sub->end_time > $slotStart->format('H:i:s'));
-                
-                return $dateOverlap && $timeOverlap;
-            })->sum('quantity');
+            $stockBooked = $conflictingSubmissions->sum('quantity');
+            $isBooked = $conflictingSubmissions->isNotEmpty();
 
             $availableSlots[] = [
-                'time_start' => $slotStart->format('H:i'),
-                'time_end' => $slotEnd->format('H:i'),
-                'is_available' => ($totalStock - $stockBooked) > 0,
+                'time_start'      => $slotStart->format('H:i'),
+                'is_booked'       => $isBooked,
                 'available_count' => $totalStock - $stockBooked,
             ];
-
-            $currentSlot->addHour();
         }
 
-
+        // Kirim semua data yang sudah diproses ke view
         return view('inventory.reservation_index', compact(
             'inventory', 
             'selectedDate',
-            'startOfMonth',
-            'endOfMonth',
+            'dateRange',
             'availableSlots', 
-            'reservationHistory' // Kirim History untuk ditampilkan
+            'reservationHistory'
         ));
     }
 }

@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\Rule;
+use App\Models\LendSubmission;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Route;
 
 class InventoryController extends Controller
 {
@@ -134,9 +137,42 @@ class InventoryController extends Controller
         return redirect()->route('inventory')->with('success', 'Item deleted successfully.');
     }
 
-    public function show(Inventory $inventory)
+    public function show(Inventory $inventory, Request $request)
     {
-        return view('inventory.show', compact('inventory'));
+        $activeOnlyToday = $request->input('active_today');
+
+        $query = LendSubmission::where('inventory_id', $inventory->id)
+            ->where('status', 'Accepted')
+            ->with('user') // Eager load untuk efisiensi
+            ->orderBy('start_date');
+
+        // Terapkan filter jika checkbox aktif
+        if ($activeOnlyToday) {
+            $today = Carbon::today();
+            $query->whereDate('start_date', '<=', $today)
+                ->whereDate('end_date', '>=', $today);
+        }
+
+        $activeSubmissions = $query->get();
+
+        // Format data untuk ditampilkan di tabel riwayat
+        $reservationHistory = $activeSubmissions->map(function ($submission) {
+            return [
+                'proposal_id'   => $submission->proposal_id,
+                'user_name'     => $submission->full_name,
+                'department'    => $submission->department, // Memastikan 'department' ada di sini
+                'purpose_title' => $submission->purpose_title,
+                'period'        => Carbon::parse($submission->start_date)->format('d/m/Y') . ' - ' . Carbon::parse($submission->end_date)->format('d/m/Y'),
+                'time'          => \Carbon\Carbon::parse($submission->start_time)->format('H:i') . ' - ' . \Carbon\Carbon::parse($submission->end_time)->format('H:i'),
+                'status'        => $submission->status
+            ];
+        });
+
+        // Kirim data inventory dan riwayatnya ke view
+        return view('inventory.show', [
+            'inventory'          => $inventory,
+            'reservationHistory' => $reservationHistory
+        ]);
     }
 
     public function getCategoriesForBranch(Request $request)
@@ -153,7 +189,7 @@ class InventoryController extends Controller
 
         return response()->json($categories);
     }
-
+    
     public function getItemsForCategory(Request $request)
     {
         $branch = $request->query('branch');
