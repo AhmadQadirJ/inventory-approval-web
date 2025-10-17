@@ -47,6 +47,15 @@
             @endif
         </div>
 
+        <div class="mt-4">
+            <x-input-label for="nip" :value="__('NIP')" />
+            {{-- Mengakses data NIP dari objek user yang dimuat oleh Controller --}}
+            <x-text-input id="nip" name="nip" type="text" class="mt-1 block w-full bg-gray-100" 
+                        :value="$user->nip" required/>
+            
+            {{-- Catatan: 'disabled' memastikan user tidak dapat mengubah NIP --}}
+        </div>
+
         <div class="mt-6">
             <x-input-label for="photo" :value="__('Photo')" />
             @if (Auth::user()->profile_photo_path)
