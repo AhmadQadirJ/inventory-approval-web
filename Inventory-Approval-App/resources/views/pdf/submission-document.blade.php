@@ -46,17 +46,23 @@
             font-size: 10pt;
             font-weight: bold;
         }
-        .footer {
-            position: fixed;
-            bottom: 50px;
-            right: 0mm;
+        .signature-container {
+            width: 100%;
+            margin-top: 50px;
             text-align: right;
         }
-        .signature-logo {
-            font-size: 32px;
-            font-weight: 900;
-            color: #cccccc;
-            margin-bottom: 15px;
+        .signature-box {
+            display: inline-block;
+            text-align: center;
+            width: 250px; /* Lebar area tanda tangan */
+            margin-left: 20px;
+        }
+        .signature-image {
+            display: block;
+            width: 100%;
+            max-width: 150px; /* Batasi ukuran TTD */
+            height: auto;
+            margin: 5px auto;
         }
         .signature-logo span {
             color: #ff0000;
@@ -178,10 +184,29 @@
     <p>Demikian surat persetujuan ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>
     <p>Atas perhatian dan kerjasamanya, kami ucapkan terimakasih.</p>
 
-    <div class="footer">
-        <div style="margin-top: 30px;">
-            <div class="signature-logo">WIT<span>.</span></div>
-            <p><u>"------------"</u><br>Chief Operating Officer</p>
+    <div class="signature-container">
+        <div class="signature-box">
+            <p style="margin-bottom: 50px;">Bandung, {{ \Carbon\Carbon::now()->format('d F Y') }}</p>
+
+            <p>Disetujui oleh:</p>
+            
+            {{-- TANDA TANGAN DIGITAL (WIT ID STAMP) --}}
+            @if($submission->final_approver_ttd_path)
+                <img src="{{ public_path($submission->final_approver_ttd_path) }}" 
+                     class="signature-image" alt="Digital Signature">
+            @else
+                <div style="height: 100px;">[TTD Stamp Not Found]</div>
+            @endif
+
+            <p style="margin-top: 5px; margin-bottom: 2px;">
+                <u style="font-weight: bold;">{{ $submission->final_approver_name ?? 'Nama Approver' }}</u>
+            </p>
+            <p style="font-size: 10pt; margin-top: 0;">
+                NIP: {{ $submission->final_approver_nip ?? '-' }}
+            </p>
+            <p style="font-size: 10pt;">
+                ({{ $submission->status == 'Accepted - COO' ? 'Chief Operating Officer' : ($submission->status == 'Accepted - CHRD' ? 'Chief Human Resources Development' : 'Pejabat Approval') }})
+            </p>
         </div>
     </div>
 

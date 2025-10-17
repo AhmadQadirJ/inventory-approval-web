@@ -14,6 +14,8 @@ class ProcureSubmission extends Model
         'user_id', 'full_name', 'employee_id', 'department', 'item_name',
         'quantity', 'estimated_price', 'reference_link', 'item_description',
         'purpose_title', 'start_date', 'end_date', 'procurement_description', 'status',
+        'approved_by',
+        'final_approver_nip', 'final_approver_name', 'final_approver_ttd_path',
     ];
 
     public function timelines()

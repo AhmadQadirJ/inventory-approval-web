@@ -198,75 +198,82 @@ class ApprovalController extends Controller
     {
         $submission = null;
         $submissionType = null;
+        
+        // 1. Dapatkan Submission (Menggunakan proposal_id dari route)
         if (Str::startsWith($proposal_id, 'A-')) {
-            $submission = LendSubmission::findOrFail($request->id);
+            $submission = LendSubmission::where('proposal_id', $proposal_id)->firstOrFail();
             $submissionType = 'lend';
         } elseif (Str::startsWith($proposal_id, 'B-')) {
-            $submission = ProcureSubmission::findOrFail($request->id);
+            $submission = ProcureSubmission::where('proposal_id', $proposal_id)->firstOrFail();
             $submissionType = 'procure';
+        } else {
+            return redirect()->route('approval.index')->with('error', "Submission not found.");
         }
 
         $userRole = Auth::user()->role;
         $currentStatus = $submission->status;
         $nextStatus = $currentStatus;
 
-        // Menghindari persetujuan yang tidak valid
-        if (! $submission->exists) {
-            return redirect()->route('approval.index')->with('error', "Submission not found.");
-        }
-
+        // 2. Tentukan Status Selanjutnya ($nextStatus)
         if ($submissionType === 'lend') {
-            // --- ALUR PEMINJAMAN (LEND): GA -> (COO ATAU CHRD) ---
             if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
-                // TAHAP 1: Setelah GA, langsung ke tahap Approval Akhir Paralel
-                $nextStatus = 'Processed - COO/CHRD'; // Status penanda bahwa siap di-approve COO/CHRD
+                $nextStatus = 'Processed - COO/CHRD';
             } elseif (in_array($userRole, ['COO', 'CHRD']) && $currentStatus === 'Processed - COO/CHRD') {
-                // TAHAP AKHIR PARALEL: Jika salah satu approve, proposal selesai
-                $nextStatus = 'Accepted - ' . $userRole;
+                $nextStatus = 'Accepted - ' . $userRole; // Status akhir peminjaman
             }
-
         } elseif ($submissionType === 'procure') {
-            // --- ALUR PENGADAAN (PROCURE): GA -> Finance -> CHRD ---
             if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
-                // TAHAP 1: Setelah GA, langsung ke Finance
                 $nextStatus = 'Processed - Finance';
             } elseif ($userRole === 'Finance' && $currentStatus === 'Processed - Finance') {
-                // TAHAP 2: Setelah Finance, langsung ke CHRD
                 $nextStatus = 'Processed - CHRD';
             } elseif ($userRole === 'CHRD' && $currentStatus === 'Processed - CHRD') {
-                // TAHAP AKHIR: Approval final oleh CHRD
-                $nextStatus = 'Accepted';
+                $nextStatus = 'Accepted'; // Status akhir pengadaan
             }
         }
         
-        // Jika status berhasil maju ke tahap berikutnya
+        // --- 3. PROSES SIMPAN DATA HANYA JIKA ADA PERUBAHAN STATUS ---
         if ($nextStatus !== $currentStatus) {
+            
+            $approver = Auth::user();
+
+            // LOGIKA PENYIMPANAN FINAL APPROVER
+            if (Str::startsWith($nextStatus, 'Accepted')) {
+                // Simpan detail approver ke submission
+                $submission->final_approver_nip = $approver->NIP ?? 'NIP_NOT_SET'; 
+                $submission->final_approver_name = $approver->name;
+                $submission->approved_by = $userRole; 
+                
+                // TTD: Tetapkan path TTD digital
+                if ($userRole === 'COO') {
+                    $submission->final_approver_ttd_path = 'images/stamps/stamp_coo.png';
+                } elseif ($userRole === 'CHRD') {
+                    $submission->final_approver_ttd_path = 'images/stamps/stamp_chrd.png';
+                } else {
+                    $submission->final_approver_ttd_path = 'images/stamps/stamp_' . strtolower($userRole) . '.png';
+                }
+            }
+
+            // SIMPAN STATUS BARU & DETAIL APPROVER KE DATABASE (SATU KALI SAVE)
             $submission->status = $nextStatus;
             $submission->save();
 
-            // Simpan status LAMA (yang baru diselesaikan) ke timeline
+            // BUAT TIMELINE HANYA UNTUK STATUS BARU
+            $notes = Str::startsWith($nextStatus, 'Accepted') 
+                     ? "Proposal has been fully approved by {$userRole}." 
+                     : $request->notes ?? "Approved for the next step by {$userRole}.";
+            
             SubmissionTimeline::create([
                 'submission_id' => $submission->id,
                 'submission_type' => $submissionType,
-                'status' => $currentStatus, // Status yang diselesaikan
-                'notes' => $request->notes ?? "Approved by {$userRole}.",
+                'status' => $nextStatus, // Catat status BARU yang dicapai
+                'notes' => $notes,
                 'user_id' => auth()->id(),
             ]);
-            
-            // Buat timeline tambahan untuk status Accepted akhir (Lend: Accepted-COO/CHRD, Procure: Accepted)
-            if (Str::startsWith($nextStatus, 'Accepted')) {
-                SubmissionTimeline::create([
-                    'submission_id' => $submission->id,
-                    'submission_type' => $submissionType,
-                    'status' => $nextStatus, 
-                    'notes' => 'Proposal has been fully approved by ' . $userRole,
-                    'user_id' => auth()->id(),
-                ]);
-            }
 
             return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been approved for the next step.");
         }
 
+        // Jika tidak ada perubahan status (Invalid Approval Step)
         return redirect()->route('approval.index')->with('error', "Invalid action or status is not awaiting your approval.");
     }
 
@@ -321,11 +328,17 @@ class ApprovalController extends Controller
             $type = 'Pengadaan';
         }
 
-        // Pemeriksaan keamanan untuk approver: hanya cek status, BUKAN kepemilikan
-        if (!$submission || $submission->status !== 'Accepted') {
+        // Pemeriksaan keamanan untuk approver
+        if (!$submission || !Str::startsWith($submission->status, 'Accepted')) {
             abort(403, 'Submission Not Accepted or Not Found.');
         }
         $submission->type = $type;
+
+        if ($submission->approved_by) {
+        } else {
+           $statusParts = explode(' - ', $submission->status);
+            $submission->approved_by = end($statusParts); 
+        }
 
         $data = [
             'submission' => $submission,

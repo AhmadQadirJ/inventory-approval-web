@@ -19,7 +19,7 @@ return new class extends Migration
             'Rejected - Finance',
             'Rejected - CHRD',
             'Rejected - COO',
-            'Accepted'
+            ('Accepted' || 'Accepted - COO' || 'Accepted - CHRD')
         ];
 
         // Modifikasi tabel peminjaman
