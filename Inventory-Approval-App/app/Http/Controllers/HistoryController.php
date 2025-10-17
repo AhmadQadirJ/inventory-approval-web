@@ -80,7 +80,7 @@ class HistoryController extends Controller
         $submissions = $submissions->sortByDesc('date');
 
         $pendingCount = $submissions->where('status', 'Pending')->count();
-        $acceptedCount = $submissions->where('status', 'Accepted')->count();
+        $acceptedCount = $submissions->where('status', operator: ('Accepted' || 'Accepted - COO' || 'Accepted - CHRD'))->count();
         $rejectedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Rejected'))->count();
         $processedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Processed'))->count();
 

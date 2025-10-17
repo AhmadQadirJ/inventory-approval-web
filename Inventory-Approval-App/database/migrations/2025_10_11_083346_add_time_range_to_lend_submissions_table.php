@@ -12,8 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('lend_submissions', function (Blueprint $table) {
-            $table->time('start_time')->after('end_date');
-            $table->time('end_time')->after('start_time');
+            // Pastikan kolom belum ada sebelum menambahkan
+            if (!Schema::hasColumn('lend_submissions', 'start_time')) {
+                $table->time('start_time')->nullable()->after('end_date');
+            }
+            if (!Schema::hasColumn('lend_submissions', 'end_time')) {
+                $table->time('end_time')->nullable()->after('start_time');
+            }
         });
     }
 

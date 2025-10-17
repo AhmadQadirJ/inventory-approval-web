@@ -7,6 +7,7 @@ use App\Models\ProcureSubmission;
 use App\Models\SubmissionTimeline;
 use App\Models\Inventory;   
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 
@@ -33,24 +34,24 @@ class SubmissionController extends Controller
     // Method untuk menyimpan data form Peminjaman
     public function storeLend(Request $request)
     {
-        // 1. Validasi semua input dari form
+        // 1. Validasi
         $validated = $request->validate([
-            'nama_lengkap'         => 'required|string|max:255',
-            'nip'                  => 'required|string|max:255',
-            'departemen'           => 'required|string|max:255',
-            'inventory_id'         => 'required|exists:inventories,id',
-            'quantity'             => 'required|integer|min:1',
-            'judul_peminjaman'     => 'required|string|max:255',
-            'tanggal_mulai'        => 'required|date',
-            'start_time'           => 'required',
-            'tanggal_selesai'      => 'required|date|after_or_equal:tanggal_mulai',
-            'end_time'             => 'required',
-            'deskripsi_peminjaman' => 'required|string|max:300',
+            'nama_lengkap'          => 'required|string|max:255',
+            'nip'                   => 'required|string|max:255',
+            'departemen'            => 'required|string|max:255',
+            'inventory_id'          => 'required|exists:inventories,id',
+            'quantity'              => 'required|integer|min:1',
+            'judul_peminjaman'      => 'required|string|max:255',
+            'tanggal_mulai'         => 'required|date',
+            'start_time'            => 'required',
+            'tanggal_selesai'       => 'required|date|after_or_equal:tanggal_mulai',
+            'end_time'              => 'required',
+            'deskripsi_peminjaman'  => 'required|string|max:300',
         ]);
 
         $item = Inventory::findOrFail($validated['inventory_id']);
 
-        // 2. Cek ketersediaan stok umum
+        // 2. Cek Stok Awal (Tetap di luar transaksi)
         if ($item->qty < $validated['quantity']) {
             return back()->withInput()->with('error', 'Stok barang tidak mencukupi untuk jumlah yang Anda pinjam.');
         }
@@ -93,27 +94,48 @@ class SubmissionController extends Controller
         // --- AKHIR LOGIKA BARU ---
 
         // 3. Buat record submission (jika lolos semua pengecekan)
-        $submission = LendSubmission::create([
-            'user_id'       => auth()->id(),
-            'full_name'     => $validated['nama_lengkap'],
-            'employee_id'   => $validated['nip'],
-            'department'    => $validated['departemen'],
-            'inventory_id'  => $validated['inventory_id'],
-            'quantity'      => $validated['quantity'],
-            'purpose_title' => $validated['judul_peminjaman'],
-            'start_date'    => $validated['tanggal_mulai'],
-            'end_date'      => $validated['tanggal_selesai'],
-            'start_time'    => $validated['start_time'],
-            'end_time'      => $validated['end_time'],
-            'description'   => $validated['deskripsi_peminjaman'],
-        ]);
+        try {
+        DB::transaction(function () use ($validated) {
+            
+            // A. Buat Lend Submission (ID otomatis terjamin)
+            $submission = LendSubmission::create([
+                'user_id'       => auth()->id(),
+                'full_name'     => $validated['nama_lengkap'],
+                'employee_id'   => $validated['nip'],
+                'department'    => $validated['departemen'],
+                'inventory_id'  => $validated['inventory_id'],
+                'quantity'      => $validated['quantity'],
+                'purpose_title' => $validated['judul_peminjaman'],
+                'start_date'    => $validated['tanggal_mulai'],
+                'end_date'      => $validated['tanggal_selesai'],
+                'start_time'    => $validated['start_time'],
+                'end_time'      => $validated['end_time'],
+                'description'   => $validated['deskripsi_peminjaman'],
+                'status'        => 'Pending',
+            ]);
 
-        // ... (Sisa kode untuk proposal_id dan timeline tetap sama) ...
-        $submission->proposal_id = 'A-' . $submission->id;
-        $submission->save();
-        SubmissionTimeline::create([ /* ... */ ]);
+            // B. Simpan Proposal ID
+            $submission->proposal_id = 'A-' . $submission->id;
+            $submission->save();
 
-        return redirect()->route('submission.index')->with('success', 'Pengajuan peminjaman barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
+            // C. Buat Timeline (ID submission dijamin tersedia dari objek $submission)
+            SubmissionTimeline::create([
+                'submission_id'   => $submission->id, // <-- AKSI PENTING!
+                'submission_type' => 'lend',
+                'status'          => 'Pending',
+                'notes'           => 'Submission created by user.',
+                'user_id'         => auth()->id(),
+            ]);
+
+        }); // Akhir DB::transaction
+    
+        } catch (\Exception $e) {
+            // Jika transaksi gagal (misalnya karena relasi atau kegagalan DB), rollback
+            return back()->withInput()->with('error', 'Pengajuan gagal disimpan karena masalah database.');
+        }
+        // --- AKHIR TRANSAKSI ---
+
+        return redirect()->route('submission.index')->with('success', 'Pengajuan peminjaman barang berhasil dikirim!');
     }
 
     // Method untuk menyimpan data form Pengadaan
@@ -157,13 +179,13 @@ class SubmissionController extends Controller
         $submission->save();
 
         SubmissionTimeline::create([
-            'submission_id' => $submission->id,
+            'submission_id'   => $submission->id, 
             'submission_type' => 'procure',
-            'status' => 'Pending',
-            'notes' => 'Submission created by user.',
-            'user_id' => auth()->id(),
+            'status'          => 'Pending',
+            'notes'           => 'Submission created by user.',
+            'user_id'         => auth()->id(),
         ]);
 
-        return redirect()->route('submission')->with('success', 'Pengajuan pengadaan barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
+        return redirect()->route('submission.index')->with('success', 'Pengajuan pengadaan barang (ID: ' . $submission->proposal_id . ') berhasil dikirim!');
     }
 }

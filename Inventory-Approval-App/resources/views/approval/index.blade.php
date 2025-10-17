@@ -91,7 +91,7 @@
                                         @php
                                             $statusClass = '';
                                             if ($submission->status == 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
-                                            else if ($submission->status == 'Accepted') $statusClass = 'bg-green-100 text-green-800';
+                                            else if (($submission->status == 'Accepted - CHRD' || $submission->status == 'Accepted - COO' || $submission->status == 'Accepted')) $statusClass = 'bg-green-100 text-green-800';
                                             else if (Str::startsWith($submission->status, 'Rejected')) $statusClass = 'bg-red-100 text-red-800';
                                             else if (Str::startsWith($submission->status, 'Processed')) $statusClass = 'bg-blue-100 text-blue-800';
                                         @endphp
@@ -109,9 +109,9 @@
                                             </button>
                                         </form>
                                     @elseif (($submission->status == 'Processed - GA' && Auth::user()->role == 'General Affair') ||
-                                            ($submission->status == 'Processed - Manager' && Auth::user()->role == 'Manager') ||
+                                            ($submission->status == 'Processed - COO/CHRD' && (Auth::user()->role == 'COO' || Auth::user()->role == 'CHRD')) ||
                                             ($submission->status == 'Processed - Finance' && Auth::user()->role == 'Finance') ||
-                                            ($submission->status == 'Processed - COO' && Auth::user()->role == 'COO'))
+                                            ($submission->status == 'Processed - CHRD' && Auth::user()->role == 'CHRD'))
                                         <a href="{{ route('approval.process', $submission->id) }}" class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600">Proceed</a>
                                     @else
                                         <a href="{{ route('approval.show', $submission->id) }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Detail</a>

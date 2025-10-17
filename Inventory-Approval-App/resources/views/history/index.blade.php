@@ -81,7 +81,7 @@
                                         @php
                                             $statusClass = '';
                                             if ($submission->status == 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
-                                            else if ($submission->status == 'Accepted') $statusClass = 'bg-green-100 text-green-800';
+                                            else if (($submission->status == 'Accepted - CHRD' || $submission->status == 'Accepted - COO' || $submission->status == 'Accepted')) $statusClass = 'bg-green-100 text-green-800';
                                             else if (Str::startsWith($submission->status, 'Rejected')) $statusClass = 'bg-red-100 text-red-800';
                                             else if (Str::startsWith($submission->status, 'Processed')) $statusClass = 'bg-blue-100 text-blue-800';
                                         @endphp

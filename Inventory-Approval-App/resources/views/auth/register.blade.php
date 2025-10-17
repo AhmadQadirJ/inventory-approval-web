@@ -23,13 +23,19 @@
                 </div>
 
                 <div>
+                    <x-input-label for="NIP" value="NIP Number" class="text-sm font-medium text-gray-700" />
+                    <x-text-input id="NIP" class="block w-full px-3 py-2 mt-1 bg-gray-100 border-gray-200 rounded-md focus:ring-red-500 focus:border-red-500" type="integer" name="NIP" :value="old('NIP')" required autocomplete="username" placeholder="Type Your NIP Number"/>
+                    <x-input-error :messages="$errors->get('NIP')" class="mt-2" />
+                </div>
+
+                <div>
                     <x-input-label for="role" value="Role" class="text-sm font-medium text-gray-700" />
                     <select id="role" name="role" class="block w-full px-3 py-2 mt-1 bg-gray-100 border-gray-200 rounded-md focus:ring-red-500 focus:border-red-500">
                         <option value="Karyawan">Karyawan</option>
                         <option value="General Affair">General Affair</option>
-                        <option value="Manager">Manager</option>
                         <option value="Finance">Finance</option>
                         <option value="COO">COO</option>
+                        <option value="CHRD">CHRD</option>
                         <option value="Admin">Admin</option>
                     </select>
                     <x-input-error :messages="$errors->get('role')" class="mt-2" />

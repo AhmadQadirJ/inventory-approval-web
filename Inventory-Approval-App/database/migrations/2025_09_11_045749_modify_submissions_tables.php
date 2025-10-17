@@ -12,12 +12,12 @@ return new class extends Migration
         $statuses = [
             'Pending',
             'Processed - GA',
-            'Processed - Manager',
             'Processed - Finance',
-            'Processed - COO',
+            'Processed - COO/CHRD',
+            'Processed - CHRD',
             'Rejected - GA',
-            'Rejected - Manager',
             'Rejected - Finance',
+            'Rejected - CHRD',
             'Rejected - COO',
             'Accepted'
         ];

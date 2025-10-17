@@ -27,7 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // SUBMISSION
-    Route::get('/submission', [SubmissionController::class, 'index'])->name('submission');
+    Route::get('/submission', [SubmissionController::class, 'index'])->name('submission.index');
     Route::get('/submission/lend', [SubmissionController::class, 'createLend'])->name('submission.lend.create');
     Route::post('/submission/lend', [SubmissionController::class, 'storeLend'])->name('submission.lend.store');
     Route::get('/submission/procure', [SubmissionController::class, 'createProcure'])->name('submission.procure.create');

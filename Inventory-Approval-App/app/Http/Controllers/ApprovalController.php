@@ -66,14 +66,25 @@ class ApprovalController extends Controller
         $submissions = new \Illuminate\Support\Collection(array_merge($mappedLend->all(), $mappedProcure->all()));
 
         $userRole = auth()->user()->role;
+        
         if ($waitingOnly) {
             $submissions = $submissions->filter(function ($submission) use ($userRole) {
                 switch ($userRole) {
-                    case 'General Affair': return in_array($submission->status, ['Pending', 'Processed - GA']);
-                    case 'Manager': return $submission->status === 'Processed - Manager';
-                    case 'Finance': return $submission->status === 'Processed - Finance';
-                    case 'COO': return $submission->status === 'Processed - COO';
-                    default: return false;
+                    case 'General Affair': 
+                        return $submission->status === 'Pending';
+                    // case 'Manager': DIHAPUS
+                    case 'Finance': 
+                        // Finance hanya melihat Pengadaan dari GA (Type B)
+                        return $submission->type === 'Pengadaan' && $submission->status === 'Processed - GA';
+                    case 'COO': 
+                        // COO melihat Peminjaman dari GA (Type A)
+                        return $submission->type === 'Peminjaman' && $submission->status === 'Processed - GA';
+                    case 'CHRD': 
+                        // CHRD melihat Peminjaman (Parallel) ATAU Pengadaan (Sequential)
+                        return ($submission->type === 'Peminjaman' && $submission->status === 'Processed - GA') || 
+                               ($submission->type === 'Pengadaan' && $submission->status === 'Processed - Finance');
+                    default: 
+                        return false;
                 }
             });
         }
@@ -94,15 +105,15 @@ class ApprovalController extends Controller
             case 'General Affair':
                 $waitingForApprovalCount = $submissions->whereIn('status', ['Pending', 'Processed - GA'])->count();
                 break;
-            case 'Manager':
-                $waitingForApprovalCount = $submissions->where('status', 'Processed - Manager')->count();
-                break;
             case 'Finance':
                 $waitingForApprovalCount = $submissions->where('status', 'Processed - Finance')->count();
                 break;
             case 'COO':
                 $waitingForApprovalCount = $submissions->where('status', 'Processed - COO')->count();
                 break;
+            case 'CHRD':
+                $waitingForApprovalCount = $submissions->where('status', 'Processed - CHRD')->count();
+            break;
         }
 
         return view('approval.index', [
@@ -195,45 +206,68 @@ class ApprovalController extends Controller
             $submissionType = 'procure';
         }
 
+        $userRole = Auth::user()->role;
         $currentStatus = $submission->status;
+        $nextStatus = $currentStatus;
 
-        // Tentukan status berikutnya
-        $nextStatusMap = [
-            'Processed - GA' => 'Processed - Manager',
-            'Processed - Manager' => 'Processed - Finance',
-            'Processed - Finance' => 'Processed - COO',
-            'Processed - COO' => 'Accepted',
-        ];
+        // Menghindari persetujuan yang tidak valid
+        if (! $submission->exists) {
+            return redirect()->route('approval.index')->with('error', "Submission not found.");
+        }
 
-        $newStatus = $nextStatusMap[$currentStatus] ?? $currentStatus;
+        if ($submissionType === 'lend') {
+            // --- ALUR PEMINJAMAN (LEND): GA -> (COO ATAU CHRD) ---
+            if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
+                // TAHAP 1: Setelah GA, langsung ke tahap Approval Akhir Paralel
+                $nextStatus = 'Processed - COO/CHRD'; // Status penanda bahwa siap di-approve COO/CHRD
+            } elseif (in_array($userRole, ['COO', 'CHRD']) && $currentStatus === 'Processed - COO/CHRD') {
+                // TAHAP AKHIR PARALEL: Jika salah satu approve, proposal selesai
+                $nextStatus = 'Accepted - ' . $userRole;
+            }
 
-        // Update status utama proposal
-        $submission->status = $newStatus;
-        $submission->save();
+        } elseif ($submissionType === 'procure') {
+            // --- ALUR PENGADAAN (PROCURE): GA -> Finance -> CHRD ---
+            if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
+                // TAHAP 1: Setelah GA, langsung ke Finance
+                $nextStatus = 'Processed - Finance';
+            } elseif ($userRole === 'Finance' && $currentStatus === 'Processed - Finance') {
+                // TAHAP 2: Setelah Finance, langsung ke CHRD
+                $nextStatus = 'Processed - CHRD';
+            } elseif ($userRole === 'CHRD' && $currentStatus === 'Processed - CHRD') {
+                // TAHAP AKHIR: Approval final oleh CHRD
+                $nextStatus = 'Accepted';
+            }
+        }
+        
+        // Jika status berhasil maju ke tahap berikutnya
+        if ($nextStatus !== $currentStatus) {
+            $submission->status = $nextStatus;
+            $submission->save();
 
-        // Simpan status LAMA (yang baru selesai) ke timeline
-        SubmissionTimeline::create([
-            'submission_id' => $submission->id,
-            'submission_type' => $submissionType,
-            'status' => $currentStatus,
-            'notes' => $request->notes,
-            'user_id' => auth()->id(),
-        ]);
-
-        // --- PERUBAHAN UTAMA DI SINI ---
-        // Jika status baru adalah "Accepted", buat satu entri timeline tambahan untuk menandakan proposal selesai.
-        if ($newStatus === 'Accepted') {
+            // Simpan status LAMA (yang baru diselesaikan) ke timeline
             SubmissionTimeline::create([
                 'submission_id' => $submission->id,
                 'submission_type' => $submissionType,
-                'status' => 'Accepted',
-                'notes' => 'Proposal has been fully approved.',
-                'user_id' => auth()->id(), // Dicatat oleh approver terakhir
+                'status' => $currentStatus, // Status yang diselesaikan
+                'notes' => $request->notes ?? "Approved by {$userRole}.",
+                'user_id' => auth()->id(),
             ]);
-        }
-        // --- AKHIR PERUBAHAN ---
+            
+            // Buat timeline tambahan untuk status Accepted akhir (Lend: Accepted-COO/CHRD, Procure: Accepted)
+            if (Str::startsWith($nextStatus, 'Accepted')) {
+                SubmissionTimeline::create([
+                    'submission_id' => $submission->id,
+                    'submission_type' => $submissionType,
+                    'status' => $nextStatus, 
+                    'notes' => 'Proposal has been fully approved by ' . $userRole,
+                    'user_id' => auth()->id(),
+                ]);
+            }
 
-        return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been approved for the next step.");
+            return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been approved for the next step.");
+        }
+
+        return redirect()->route('approval.index')->with('error', "Invalid action or status is not awaiting your approval.");
     }
 
     public function reject(Request $request, $proposal_id)
@@ -253,21 +287,25 @@ class ApprovalController extends Controller
         }
         // ---
 
+        $userRole = Auth::user()->role;
         $currentStatus = $submission->status; 
 
-        $newStatus = 'Rejected';
+        // Tentukan status Rejected berdasarkan role saat ini
+        $newStatus = 'Rejected - ' . $userRole;
+        
+        // Update status utama proposal
         $submission->status = $newStatus;
         $submission->save();
 
         SubmissionTimeline::create([
             'submission_id' => $submission->id,
             'submission_type' => $submissionType,
-            'status' => $currentStatus,
-            'notes' => $request->notes,
+            'status' => $newStatus, // Catat status Rejected final
+            'notes' => $request->notes ?? "Rejected by {$userRole}.",
             'user_id' => auth()->id(),
         ]);
 
-        return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been rejected.");
+        return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been rejected by {$userRole}.");
     }
 
     public function printPdf($proposal_id)

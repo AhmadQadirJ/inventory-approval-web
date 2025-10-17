@@ -16,15 +16,14 @@ return new class extends Migration
         $statuses = [
             'Pending',
             'Processed - GA',
-            'Processed - Manager',
             'Processed - Finance',
-            'Processed - COO',
+            'Processed - COO/CHRD',
+            'Processed - CHRD',
             'Rejected - GA',
-            'Rejected - Manager',
             'Rejected - Finance',
+            'Rejected - CHRD',
             'Rejected - COO',
-            'Accepted',
-            'Rejected'
+            'Accepted'
         ];
 
         // Gunakan Schema Builder Laravel untuk mengubah kolom
@@ -44,9 +43,9 @@ return new class extends Migration
     {
         // Opsi rollback (praktik yang baik)
         $statuses = [
-            'Pending', 'Processed - GA', 'Processed - Manager', 'Processed - Finance',
-            'Processed - COO', 'Rejected - GA', 'Rejected - Manager', 'Rejected - Finance',
-            'Rejected - COO', 'Accepted'
+            'Pending', 'Processed - GA', 'Processed - Finance',
+            'Processed - COO/CHRD', 'Rejected - GA', 'Rejected - Finance',
+            'Rejected - COO','Rejected CHRD', 'Accepted'
         ];
 
         // Gunakan Schema Builder Laravel untuk mengembalikan kolom

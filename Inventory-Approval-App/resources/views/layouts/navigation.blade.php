@@ -12,7 +12,7 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('submission')" :active="request()->routeIs('submission')">
+                    <x-nav-link :href="route('submission.index')" :active="request()->routeIs('submission.index')">
                         {{ __('Submission') }}
                     </x-nav-link>
                     <x-nav-link :href="route('history')" :active="request()->routeIs('history')">
@@ -21,7 +21,7 @@
                     <x-nav-link :href="route('inventory')" :active="request()->routeIs('inventory')">
                         {{ __('Inventory') }}
                     </x-nav-link>
-                    @if (in_array(Auth::user()->role, ['General Affair', 'Manager', 'Finance', 'COO']))
+                    @if (in_array(Auth::user()->role, ['General Affair', 'Finance', 'COO', 'CHRD']))
                         <x-nav-link :href="route('approval.index')" :active="request()->routeIs('approval.*')">
                             {{ __('Approval') }}
                         </x-nav-link>
@@ -82,7 +82,7 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('submission')" :active="request()->routeIs('submission')">
+            <x-responsive-nav-link :href="route('submission.index')" :active="request()->routeIs('submission.index')">
                 {{ __('Submission') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('history')" :active="request()->routeIs('history')">
@@ -91,7 +91,7 @@
             <x-responsive-nav-link :href="route('inventory')" :active="request()->routeIs('inventory')">
                 {{ __('Inventory') }}
             </x-responsive-nav-link>
-            @if (in_array(Auth::user()->role, ['General Affair', 'Manager', 'Finance', 'COO']))
+            @if (in_array(Auth::user()->role, ['General Affair', 'Finance', 'COO', 'CHRD']))
                 <x-responsive-nav-link :href="route('approval.index')" :active="request()->routeIs('approval')">
                     {{ __('Approval') }}
                 </x-responsive-nav-link>

@@ -39,7 +39,7 @@ class UserManagementController extends Controller
         $users = $query->paginate(10)->withQueryString(); // withQueryString() agar filter tetap ada saat pindah halaman
 
         // Daftar role untuk dropdown
-        $roles = ['Karyawan', 'General Affair', 'Manager', 'Finance', 'COO'];
+        $roles = ['Karyawan', 'General Affair', 'Finance', 'COO', 'CHRD'];
 
         return view('user-management.index', compact('users', 'roles'));
 }
@@ -75,7 +75,7 @@ class UserManagementController extends Controller
     {
         // Ganti nama variabel agar lebih intuitif
         $user = $user_management;
-        $roles = ['Karyawan', 'General Affair', 'Manager', 'Finance', 'COO', 'Admin'];
+        $roles = ['Karyawan', 'General Affair', 'Finance', 'COO', 'CHRD', 'Admin'];
         return view('user-management.edit', compact('user', 'roles'));
     }
 

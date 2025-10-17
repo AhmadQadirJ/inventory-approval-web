@@ -8,7 +8,7 @@
                     <p class="mt-2 text-gray-600">Submit inventory requests and track the status of your request.</p>
                 </div>
                 <div class="flex space-x-4">
-                    <a href="{{ route('submission') }}" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition ease-in-out duration-150">
+                    <a href="{{ route('submission.index') }}" class="inline-flex items-center px-4 py-2 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition ease-in-out duration-150">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                         Create Submission
                     </a>
@@ -67,7 +67,7 @@
                                             @php
                                                 $statusClass = '';
                                                 if ($submission->status == 'Pending') $statusClass = 'bg-yellow-100 text-yellow-800';
-                                                else if ($submission->status == 'Accepted') $statusClass = 'bg-green-100 text-green-800';
+                                                else if (($submission->status == 'Accepted - CHRD' || $submission->status == 'Accepted - COO' || $submission->status == 'Accepted')) $statusClass = 'bg-green-100 text-green-800';
                                                 else if (Str::startsWith($submission->status, 'Rejected')) $statusClass = 'bg-red-100 text-red-800';
                                                 else if (Str::startsWith($submission->status, 'Processed')) $statusClass = 'bg-blue-100 text-blue-800';
                                             @endphp

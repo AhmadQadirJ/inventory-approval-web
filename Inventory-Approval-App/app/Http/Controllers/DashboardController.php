@@ -50,7 +50,7 @@ class DashboardController extends Controller
 
         // 4. Hitung statistik untuk cards (akan otomatis benar)
         $pendingCount = $allSubmissions->where('status', 'Pending')->count();
-        $acceptedCount = $allSubmissions->where('status', 'Accepted')->count();
+        $acceptedCount = $allSubmissions->where('status', ('Accepted' || 'Accepted - COO' || 'Accepted - CHRD'))->count();
         $rejectedCount = $allSubmissions->filter(fn($item) => Str::startsWith($item->status, 'Rejected'))->count();
         $processedCount = $allSubmissions->filter(fn($item) => Str::startsWith($item->status, 'Processed'))->count();
 

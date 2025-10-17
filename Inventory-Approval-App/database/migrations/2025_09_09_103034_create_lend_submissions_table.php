@@ -25,7 +25,7 @@ return new class extends Migration
             $table->text('description');
             $table->string('status')
               ->default('Pending')
-              ->check(fn ($table) => in_array($table->status, ['Pending', 'Processed - GA', 'Processed - Manager', 'Processed - Finance', 'Processed - COO', 'Accepted', 'Rejected - General', 'Rejected - Manager', 'Rejected - Finance', 'Rejected - COO'])); // pending, approved, rejected, completed
+              ->check(fn ($table) => in_array($table->status, ['Pending', 'Processed - GA', 'Processed - Finance', 'Processed - COO/CHRD', 'Accepted','Accepted - CHRD', 'Accepted - COO', 'Rejected - General', 'Rejected - CHRD', 'Rejected - Finance', 'Rejected - COO'])); // pending, approved, rejected, completed
             $table->timestamps();
             
 
