@@ -18,15 +18,20 @@ class UserManagementController extends Controller
     {
         $search = $request->input('search');
         $roleFilter = $request->input('role_filter');
+        $branchFilter = $request->input('branch_filter');
 
         // Mulai query dengan mengambil semua user kecuali admin saat ini
         $query = User::where('id', '!=', auth()->id());
 
         // Terapkan filter pencarian jika ada
-        if ($search) {
+       if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%");
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%")
+                  ->orWhere('role', 'like', "%{$search}%")
+                  ->orWhere('branch', 'like', "%{$search}%")
+                  ->orWhere('department', 'like', "%{$search}%");
             });
         }
 
@@ -35,13 +40,18 @@ class UserManagementController extends Controller
             $query->where('role', $roleFilter);
         }
 
+        if ($branchFilter) {
+            $query->where('branch', $branchFilter);
+        }
+
         // Ambil hasil yang sudah difilter dan lakukan paginasi
         $users = $query->paginate(10)->withQueryString(); // withQueryString() agar filter tetap ada saat pindah halaman
 
         // Daftar role untuk dropdown
-        $roles = ['Karyawan', 'General Affair', 'Finance', 'COO', 'CHRD'];
+       $roles = ['Karyawan', 'General Affair', 'Finance', 'COO', 'CHRD', 'Admin'];
+       $branches = ['Pusat', 'Bandung', 'Jakarta', 'Surabaya'];
 
-        return view('user-management.index', compact('users', 'roles'));
+       return view('user-management.index', compact('users', 'roles', 'branches'));
 }
 
     /**
@@ -73,10 +83,21 @@ class UserManagementController extends Controller
      */
     public function edit(User $user_management)
     {
-        // Ganti nama variabel agar lebih intuitif
         $user = $user_management;
+        
+        // Daftar untuk dropdown
         $roles = ['Karyawan', 'General Affair', 'Finance', 'COO', 'CHRD', 'Admin'];
-        return view('user-management.edit', compact('user', 'roles'));
+        $karyawan_branches = ['Bandung', 'Jakarta', 'Surabaya'];
+        $management_branches = ['Pusat', 'Jakarta', 'Bandung', 'Surabaya'];
+        $karyawan_departments = ['Operational', 'Human Resources', 'General Affair', 'Finance and Acc Tax', 'Technology', 'Marketing & Creative'];
+
+        return view('user-management.edit', compact(
+            'user', 
+            'roles', 
+            'karyawan_branches', 
+            'management_branches',
+            'karyawan_departments'
+        ));
     }
 
     /**
@@ -85,21 +106,52 @@ class UserManagementController extends Controller
     public function update(Request $request, User $user_management)
     {
         $user = $user_management;
+        $managementRoles = ['General Affair', 'Finance', 'COO', 'CHRD'];
+        $rolesWithDepartment = ['Karyawan', 'General Affair', 'Finance'];
 
         // Validasi
         $request->validate([
-            'name' => ['sometimes', 'required', 'string', 'max:255'],
-            'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
-            'role' => ['sometimes', 'required', 'string'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+            'nip' => ['nullable', 'string', 'max:255'],
+            'role' => ['required', 'string'],
+            
+            // Branch wajib jika Karyawan ATAU Management
+            'branch' => [
+                Rule::requiredIf(fn () => $request->role === 'Karyawan' || in_array($request->role, $managementRoles)),
+                'nullable', 'string'
+            ],
+            // Department: Wajib HANYA JIKA role-nya 'Karyawan', 'GA', atau 'Finance'
+            'department' => [
+                Rule::requiredIf(fn () => in_array($request->role, $rolesWithDepartment)),
+                'nullable', 'string'
+            ],
+
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'profile_photo' => ['nullable', 'image', 'max:1024'],
         ]);
 
-        // Update Informasi Utama & Role
+        // Update Informasi Utama
         if ($request->filled('name')) {
             $user->name = $request->name;
             $user->email = $request->email;
+            $user->nip = $request->nip;
             $user->role = $request->role;
+
+            // Logika kondisional baru
+            if (in_array($request->role, $rolesWithDepartment)) {
+                // Karyawan, GA, Finance: Menyimpan keduanya
+                $user->branch = $request->branch;
+                $user->department = $request->department;
+            } elseif (in_array($request->role, ['COO', 'CHRD'])) {
+                // COO, CHRD: Menyimpan Branch, tapi MENGOSONGKAN Departemen
+                $user->branch = $request->branch;
+                $user->department = null;
+            } else {
+                // Role lain (Admin): Mengosongkan keduanya
+                $user->branch = null;
+                $user->department = null;
+            }
         }
 
         // Update Password

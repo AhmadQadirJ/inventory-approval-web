@@ -29,31 +29,68 @@
                     <h2 class="text-2xl font-bold text-center">Form Pengajuan Peminjaman Barang</h2>
                     <form action="{{ route('submission.lend.store') }}" method="POST" class="mt-8 space-y-8">
                         @csrf
-                        {{-- 1. Informasi Karyawan --}}
+                        {{-- 1. Informasi Karyawan (dengan dropdown dinamis) --}}
                         <div class="p-6 bg-gray-50 rounded-lg">
                             <div class="flex items-center mb-4">
                                 <div class="h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center font-bold">1</div>
                                 <h3 class="ml-4 text-lg font-semibold">Informasi Karyawan</h3>
                             </div>
+                            
+                            @php
+                                $userRole = Auth::user()->role;
+                                $isManagement = in_array($userRole, ['General Affair', 'Finance', 'CHRD', 'COO']);
+
+                                // Tentukan Opsi Branch
+                                $branches = ['Bandung', 'Jakarta', 'Surabaya'];
+                                if ($isManagement) {
+                                    array_unshift($branches, 'Pusat'); // Tambahkan 'Pusat' di awal
+                                }
+
+                                // Tentukan Opsi Departemen
+                                $departments = ['Operational', 'Human Resources', 'Finance and Acc Tax', 'Technology', 'Marketing & Creative'];
+                                if ($userRole === 'General Affair') {
+                                    $extraDepts = ['General Affair'];
+                                } elseif ($userRole === 'CHRD') {
+                                    $extraDepts = ['CHRD', 'General Affair'];
+                                } elseif ($userRole === 'COO') {
+                                    $extraDepts = ['COO', 'CHRD', 'General Affair'];
+                                } else {
+                                    $extraDepts = [];
+                                }
+                                $departments = array_unique(array_merge($departments, $extraDepts));
+                                sort($departments);
+                            @endphp
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <x-input-label for="nama_lengkap" value="Nama Lengkap*" />
-                                    <x-text-input id="nama_lengkap" name="nama_lengkap" type="text" class="mt-1 block w-full" required />
+                                    <x-text-input id="nama_lengkap" name="nama_lengkap" type="text" class="mt-1 block w-full" :value="old('nama_lengkap')" required />
                                     <x-input-error :messages="$errors->get('nama_lengkap')" class="mt-2" />
                                 </div>
                                 <div>
                                     <x-input-label for="nip" value="ID Karyawan/NIP*" />
-                                    <x-text-input id="nip" name="nip" type="text" class="mt-1 block w-full" required />
+                                    <x-text-input id="nip" name="nip" type="text" class="mt-1 block w-full" :value="old('nip')" required />
+                                    <x-input-error :messages="$errors->get('nip')" class="mt-2" />
                                 </div>
-                                <div class="md:col-span-2">
-                                    <x-input-label for="departemen" value="Departemen*" />
-                                    <select id="departemen" name="departemen" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                                        <option>Operational</option>
-                                        <option>Human Resources</option>
-                                        <option>Finance & Acc Tax</option>
-                                        <option>Technology</option>
-                                        <option>Marketing & Creative</option>
+                                <div>
+                                    <x-input-label for="branch" value="Branch*" />
+                                    <select id="branch" name="branch" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                        <option value="">-- Pilih Branch --</option>
+                                        @foreach ($branches as $branch)
+                                            <option value="{{ $branch }}" @if(old('branch') == $branch) selected @endif>{{ $branch }}</option>
+                                        @endforeach
                                     </select>
+                                    <x-input-error :messages="$errors->get('branch')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <x-input-label for="departemen" value="Departemen*" />
+                                    <select id="departemen" name="departemen" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                        <option value="">-- Pilih Departemen --</option>
+                                        @foreach ($departments as $dept)
+                                            <option value="{{ $dept }}" @if(old('departemen') == $dept) selected @endif>{{ $dept }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-input-error :messages="$errors->get('departemen')" class="mt-2" />
                                 </div>
                             </div>
                         </div>
@@ -227,9 +264,9 @@
                                 </div>
                                 <div x-data="{ count: 0 }" x-init="count = $refs.content.value.length">
                                     <x-input-label for="deskripsi_peminjaman" value="Deskripsi Peminjaman*" />
-                                    <textarea x-ref="content" @input="count = $event.target.value.length" id="deskripsi_peminjaman" name="deskripsi_peminjaman" rows="4" maxlength="300" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
-                                    <div class="text-sm text-gray-500 mt-1 text-right" :class="{ 'text-red-500': count > 300 }">
-                                        <span x-text="count"></span> / 300
+                                    <textarea x-ref="content" @input="count = $event.target.value.length" id="deskripsi_peminjaman" name="deskripsi_peminjaman" rows="4" maxlength="500" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required></textarea>
+                                    <div class="text-sm text-gray-500 mt-1 text-right" :class="{ 'text-red-500': count > 500 }">
+                                        <span x-text="count"></span> / 500
                                     </div>
                                 </div>
                             </div>

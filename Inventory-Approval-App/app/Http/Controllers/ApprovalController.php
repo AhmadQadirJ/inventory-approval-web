@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 
 class ApprovalController extends Controller
@@ -27,15 +29,22 @@ class ApprovalController extends Controller
         if ($search) {
             $lendSubmissionsQuery->where(function ($query) use ($search) {
                 $query->where('proposal_id', 'like', "%{$search}%")
-                    ->orWhere('purpose_title', 'like', "%{$search}%")
-                    ->orWhereHas('inventory', function ($q) use ($search) {
-                        $q->where('nama', 'like', "%{$search}%");
-                    });
+                      ->orWhere('purpose_title', 'like', "%{$search}%")
+                      ->orWhere('branch', 'like', "%{$search}%") // <-- Tambahan
+                      ->orWhere('status', 'like', "%{$search}%") // <-- Tambahan
+                      ->orWhere('type', 'like', "%Peminjaman%") // <-- Tambahan
+                      ->orWhereHas('inventory', function ($q) use ($search) {
+                          $q->where('nama', 'like', "%{$search}%");
+                      });
             });
+            
             $procureSubmissionsQuery->where(function ($query) use ($search) {
                 $query->where('proposal_id', 'like', "%{$search}%")
-                    ->orWhere('item_name', 'like', "%{$search}%")
-                    ->orWhere('purpose_title', 'like', "%{$search}%");
+                      ->orWhere('item_name', 'like', "%{$search}%")
+                      ->orWhere('purpose_title', 'like', "%{$search}%")
+                      ->orWhere('branch', 'like', "%{$search}%") // <-- Tambahan
+                      ->orWhere('status', 'like', "%{$search}%") // <-- Tambahan
+                      ->orWhere('type', 'like', "%Pengadaan%"); // <-- Tambahan
             });
         }
 
@@ -49,7 +58,8 @@ class ApprovalController extends Controller
             'item' => $item->inventory?->nama, // Mengambil dari relasi
             'purpose' => $item->purpose_title,
             'date' => $item->created_at->format('d/m/Y'),
-            'status' => $item->status
+            'status' => $item->status,
+            'branch' => $item->branch,
         ]);
 
         // Mapping data pengadaan
@@ -59,7 +69,8 @@ class ApprovalController extends Controller
             'item' => $item->item_name,
             'purpose' => $item->purpose_title,
             'date' => $item->created_at->format('d/m/Y'),
-            'status' => $item->status
+            'status' => $item->status,
+            'branch' => $item->branch,
         ]);
 
         // Gabungkan kedua hasil mapping
@@ -124,29 +135,37 @@ class ApprovalController extends Controller
 
     public function act($proposal_id)
     {
-        // 1. Pastikan hanya General Affair yang bisa menjalankan aksi ini
         if (auth()->user()->role !== 'General Affair') {
             abort(403, 'Unauthorized action.');
         }
 
         $submission = null;
-
-        // 2. Cari proposal di kedua tabel berdasarkan ID
+        $submissionType = null;
         if (Str::startsWith($proposal_id, 'A-')) {
-            $submission = LendSubmission::where('proposal_id', $proposal_id)->first();
+            $submission = LendSubmission::where('proposal_id', $proposal_id)->firstOrFail();
+            $submissionType = 'lend';
         } elseif (Str::startsWith($proposal_id, 'B-')) {
-            $submission = ProcureSubmission::where('proposal_id', $proposal_id)->first();
+            $submission = ProcureSubmission::where('proposal_id', $proposal_id)->firstOrFail();
+            $submissionType = 'procure';
         }
 
-        // 3. Jika proposal ditemukan dan statusnya 'Pending', ubah statusnya
         if ($submission && $submission->status === 'Pending') {
+            // Catat status "Pending" yang telah selesai
+            SubmissionTimeline::create([
+                'submission_id'   => $submission->id,
+                'submission_type' => $submissionType,
+                'status'          => 'Pending',
+                'notes'           => 'Submission has been received and is being processed by General Affair.',
+                'user_id'         => auth()->id(),
+            ]);
+
+            // Update status utama ke tahap berikutnya
             $submission->status = 'Processed - GA';
             $submission->save();
 
-            return redirect()->route('approval.index')->with('success', 'Proposal ' . $proposal_id . ' has been acted upon.');
+            return redirect()->route('approval.index')->with('success', 'Proposal ' . $proposal_id . ' is now being processed.');
         }
 
-        // Jika tidak, kembalikan dengan pesan error
         return redirect()->route('approval.index')->with('error', 'Invalid action or proposal not found.');
     }
 
@@ -198,83 +217,120 @@ class ApprovalController extends Controller
     {
         $submission = null;
         $submissionType = null;
-        
-        // 1. Dapatkan Submission (Menggunakan proposal_id dari route)
         if (Str::startsWith($proposal_id, 'A-')) {
             $submission = LendSubmission::where('proposal_id', $proposal_id)->firstOrFail();
             $submissionType = 'lend';
         } elseif (Str::startsWith($proposal_id, 'B-')) {
             $submission = ProcureSubmission::where('proposal_id', $proposal_id)->firstOrFail();
             $submissionType = 'procure';
-        } else {
-            return redirect()->route('approval.index')->with('error', "Submission not found.");
         }
 
-        $userRole = Auth::user()->role;
+        $approver = Auth::user();
+        $userRole = $approver->role;
         $currentStatus = $submission->status;
         $nextStatus = $currentStatus;
 
-        // 2. Tentukan Status Selanjutnya ($nextStatus)
+        // Tentukan status selanjutnya berdasarkan alur baru
         if ($submissionType === 'lend') {
             if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
                 $nextStatus = 'Processed - COO/CHRD';
             } elseif (in_array($userRole, ['COO', 'CHRD']) && $currentStatus === 'Processed - COO/CHRD') {
-                $nextStatus = 'Accepted - ' . $userRole; // Status akhir peminjaman
+                $nextStatus = 'Accepted - ' . $userRole;
             }
-        } elseif ($submissionType === 'procure') {
+        } 
+        elseif ($submissionType === 'procure') {
             if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
                 $nextStatus = 'Processed - Finance';
             } elseif ($userRole === 'Finance' && $currentStatus === 'Processed - Finance') {
                 $nextStatus = 'Processed - CHRD';
             } elseif ($userRole === 'CHRD' && $currentStatus === 'Processed - CHRD') {
-                $nextStatus = 'Accepted'; // Status akhir pengadaan
+                $nextStatus = 'Accepted - CHRD';
             }
         }
-        
-        // --- 3. PROSES SIMPAN DATA HANYA JIKA ADA PERUBAHAN STATUS ---
-        if ($nextStatus !== $currentStatus) {
-            
-            $approver = Auth::user();
 
-            // LOGIKA PENYIMPANAN FINAL APPROVER
-            if (Str::startsWith($nextStatus, 'Accepted')) {
-                // Simpan detail approver ke submission
-                $submission->final_approver_nip = $approver->NIP ?? 'NIP_NOT_SET'; 
-                $submission->final_approver_name = $approver->name;
-                $submission->approved_by = $userRole; 
-                
-                // TTD: Tetapkan path TTD digital
-                if ($userRole === 'COO') {
-                    $submission->final_approver_ttd_path = 'images/stamps/stamp_coo.png';
-                } elseif ($userRole === 'CHRD') {
-                    $submission->final_approver_ttd_path = 'images/stamps/stamp_chrd.png';
-                } else {
-                    $submission->final_approver_ttd_path = 'images/stamps/stamp_' . strtolower($userRole) . '.png';
+        if ($nextStatus !== $currentStatus) {
+            // --- LOGIKA PENGECEKAN KETERSEDIAAN SAAT APPROVAL ---
+            // Lakukan pengecekan ini HANYA jika ini adalah langkah approval FINAL (menuju status 'Accepted')
+            if (Str::startsWith($nextStatus, 'Accepted') && $submissionType === 'lend') {
+                $item = $submission->inventory;
+                $requestedQuantity = $submission->quantity;
+                $requestedPeriod = CarbonPeriod::create($submission->start_date, $submission->end_date);
+                $requestedStartTime = Carbon::parse($submission->start_time);
+                $requestedEndTime = Carbon::parse($submission->end_time);
+
+                // Ambil SEMUA booking lain yang sudah disetujui
+                $conflictingBookings = LendSubmission::where('inventory_id', $item->id)
+                    ->where('status', 'like', 'Accepted%')
+                    ->where('id', '!=', $submission->id) // <-- Kecualikan proposal ini
+                    ->where(function ($query) use ($submission) {
+                        $query->whereDate('start_date', '<=', $submission->end_date)
+                            ->whereDate('end_date', '>=', $submission->start_date);
+                    })
+                    ->get();
+
+                // Periksa ketersediaan untuk setiap hari yang diminta
+                foreach ($requestedPeriod as $date) {
+                    $checkSlots = CarbonPeriod::create($requestedStartTime, '30 minutes', $requestedEndTime->copy()->subMinute());
+                    foreach ($checkSlots as $slotStart) {
+                        $slotEnd = $slotStart->copy()->addMinutes(30);
+                        $bookedQuantityOnSlot = 0;
+
+                        foreach ($conflictingBookings as $sub) {
+                            $subPeriod = CarbonPeriod::create($sub->start_date, $sub->end_date);
+                            $subStartTime = Carbon::parse($sub->start_time);
+                            $subEndTime = Carbon::parse($sub->end_time);
+
+                            if ($subPeriod->contains($date) && $subStartTime->lt($slotEnd) && $subEndTime->gt($slotStart)) {
+                                $bookedQuantityOnSlot += $sub->quantity;
+                            }
+                        }
+
+                        $availableStock = $item->qty - $bookedQuantityOnSlot;
+                        if ($availableStock < $requestedQuantity) {
+                            // JIKA GAGAL, kembalikan ke halaman proses dengan pesan error
+                            return back()->with('error', 
+                                'Approval Gagal: Stok tidak tersedia pada ' . $date->format('d/m/Y') . 
+                                ' jam ' . $slotStart->format('H:i') . ' - ' . $slotEnd->format('H:i') .
+                                '. Sisa unit tersedia pada slot tersebut: ' . $availableStock
+                            );
+                        }
+                    }
                 }
             }
+            // --- AKHIR LOGIKA PENGECEKAN ---
 
-            // SIMPAN STATUS BARU & DETAIL APPROVER KE DATABASE (SATU KALI SAVE)
+            // Catat status LAMA (yang baru saja selesai) ke timeline
+            SubmissionTimeline::create([
+                'submission_id'   => $submission->id,
+                'submission_type' => $submissionType,
+                'status'          => $currentStatus,
+                'notes'           => $request->notes,
+                'user_id'         => $approver->id,
+            ]);
+
+            // Jika ini adalah persetujuan final, simpan detail approver
+            if (Str::startsWith($nextStatus, 'Accepted')) {
+                $submission->final_approver_name = $approver->name;
+                $submission->final_approver_nip = $approver->nip ?? 'N/A';
+
+                // Tambahkan satu entri timeline lagi untuk status "Accepted" final
+                SubmissionTimeline::create([
+                    'submission_id'   => $submission->id,
+                    'submission_type' => $submissionType,
+                    'status'          => $nextStatus,
+                    'notes'           => 'Proposal has been fully approved.',
+                    'user_id'         => $approver->id,
+                ]);
+            }
+
+            // Update status utama proposal
             $submission->status = $nextStatus;
             $submission->save();
 
-            // BUAT TIMELINE HANYA UNTUK STATUS BARU
-            $notes = Str::startsWith($nextStatus, 'Accepted') 
-                     ? "Proposal has been fully approved by {$userRole}." 
-                     : $request->notes ?? "Approved for the next step by {$userRole}.";
-            
-            SubmissionTimeline::create([
-                'submission_id' => $submission->id,
-                'submission_type' => $submissionType,
-                'status' => $nextStatus, // Catat status BARU yang dicapai
-                'notes' => $notes,
-                'user_id' => auth()->id(),
-            ]);
-
-            return redirect()->route('approval.index')->with('success', "Proposal $proposal_id has been approved for the next step.");
+            return redirect()->route('approval.index')->with('success', "Proposal $proposal_id approved.");
         }
 
-        // Jika tidak ada perubahan status (Invalid Approval Step)
-        return redirect()->route('approval.index')->with('error', "Invalid action or status is not awaiting your approval.");
+        return redirect()->route('approval.index')->with('error', 'Invalid approval step.');
     }
 
     public function reject(Request $request, $proposal_id)

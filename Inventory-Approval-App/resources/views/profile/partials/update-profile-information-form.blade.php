@@ -50,10 +50,18 @@
         <div class="mt-4">
             <x-input-label for="nip" :value="__('NIP')" />
             {{-- Mengakses data NIP dari objek user yang dimuat oleh Controller --}}
-            <x-text-input id="nip" name="nip" type="text" class="mt-1 block w-full bg-gray-100" 
-                        :value="$user->nip" required/>
-            
+            <x-text-input id="nip" name="nip" type="text" class="mt-1 block w-full bg-gray-100" :value="old('nip', $user->nip)" readonly />
             {{-- Catatan: 'disabled' memastikan user tidak dapat mengubah NIP --}}
+        </div>
+
+        <div class="mt-4">
+            <x-input-label for="branch" :value="__('Branch')" />
+            <x-text-input id="branch" name="branch" type="text" class="mt-1 block w-full bg-gray-100" :value="$user->branch" readonly />
+        </div>
+
+        <div class="mt-4">
+            <x-input-label for="department" :value="__('Departemen')" />
+            <x-text-input id="department" name="department" type="text" class="mt-1 block w-full bg-gray-100" :value="$user->department" readonly />
         </div>
 
         <div class="mt-6">

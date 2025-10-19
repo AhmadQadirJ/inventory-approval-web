@@ -10,9 +10,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Validation\Rule;
 
 class SubmissionController extends Controller
 {
+    protected $validBranches = ['Bandung', 'Jakarta', 'Surabaya', 'Pusat'];
+    protected $validDepartments = [
+        'Operational', 'Human Resources', 'Finance and Acc Tax', 'Technology', 'Marketing & Creative',
+        'General Affair', 'CHRD', 'COO'
+    ];
+
     // Menampilkan halaman pilihan submission
     public function index()
     {
@@ -38,7 +45,8 @@ class SubmissionController extends Controller
         $validated = $request->validate([
             'nama_lengkap'          => 'required|string|max:255',
             'nip'                   => 'required|string|max:255',
-            'departemen'            => 'required|string|max:255',
+            'branch'                => ['required', Rule::in($this->validBranches)], // Diperbarui
+            'departemen'            => ['required', Rule::in($this->validDepartments)], // Diperbarui
             'inventory_id'          => 'required|exists:inventories,id',
             'quantity'              => 'required|integer|min:1',
             'judul_peminjaman'      => 'required|string|max:255',
@@ -46,7 +54,7 @@ class SubmissionController extends Controller
             'start_time'            => 'required',
             'tanggal_selesai'       => 'required|date|after_or_equal:tanggal_mulai',
             'end_time'              => 'required',
-            'deskripsi_peminjaman'  => 'required|string|max:300',
+            'deskripsi_peminjaman'  => 'required|string|max:500',
         ]);
 
         $item = Inventory::findOrFail($validated['inventory_id']);
@@ -61,34 +69,45 @@ class SubmissionController extends Controller
         $requestedStartTime = Carbon::parse($validated['start_time']);
         $requestedEndTime = Carbon::parse($validated['end_time']);
 
+        // Ambil SEMUA booking yang sudah disetujui yang TUMPANG TINDIH HARI
+        $conflictingBookings = LendSubmission::where('inventory_id', $item->id)
+            ->where('status', 'like', 'Accepted%') // <-- FIX 1: Memeriksa semua status 'Accepted'
+            ->where(function ($query) use ($validated) {
+                $query->whereDate('start_date', '<=', $validated['tanggal_selesai'])
+                      ->whereDate('end_date', '>=', $validated['tanggal_mulai']);
+            })
+            ->get();
+        
+        // Periksa ketersediaan untuk setiap hari yang diminta
         foreach ($requestedPeriod as $date) {
-            // Ambil semua submission yang sudah 'Accepted' yang bentrok dengan tanggal ini
-            $conflictingSubmissions = LendSubmission::where('inventory_id', $item->id)
-                ->where('status', 'Accepted')
-                ->whereDate('start_date', '<=', $date)
-                ->whereDate('end_date', '>=', $date)
-                ->get();
+            // Buat slot 30 menit untuk jam yang diminta
+            $checkSlots = CarbonPeriod::create($requestedStartTime, '30 minutes', $requestedEndTime->copy()->subMinute()); // subMinute() agar tidak tumpang tindih di akhir
 
-            // Hitung total unit yang sudah dipesan pada jam yang bentrok
-            $bookedQuantityOnSlot = 0;
-            foreach ($conflictingSubmissions as $sub) {
-                $subStartTime = Carbon::parse($sub->start_time);
-                $subEndTime = Carbon::parse($sub->end_time);
+            foreach ($checkSlots as $slotStart) {
+                $slotEnd = $slotStart->copy()->addMinutes(30);
+                $bookedQuantityOnSlot = 0; // Stok yang ter-booking pada slot 30 menit ini
 
-                // Cek jika ada tumpang tindih (overlap) waktu
-                if ($requestedStartTime->lt($subEndTime) && $requestedEndTime->gt($subStartTime)) {
-                    $bookedQuantityOnSlot += $sub->quantity;
+                // Periksa setiap booking yang bentrok
+                foreach ($conflictingBookings as $sub) {
+                    $subPeriod = CarbonPeriod::create($sub->start_date, $sub->end_date);
+                    $subStartTime = Carbon::parse($sub->start_time);
+                    $subEndTime = Carbon::parse($sub->end_time);
+
+                    // Cek: Apakah booking ini (1) aktif di hari ini DAN (2) tumpang tindih dengan slot jam ini?
+                    if ($subPeriod->contains($date) && $subStartTime->lt($slotEnd) && $subEndTime->gt($slotStart)) {
+                        $bookedQuantityOnSlot += $sub->quantity;
+                    }
                 }
-            }
 
-            // Cek apakah stok yang tersedia cukup
-            $availableStock = $item->qty - $bookedQuantityOnSlot;
-            if ($availableStock < $validated['quantity']) {
-                return back()->withInput()->with('error', 
-                    'Stok tidak tersedia pada tanggal ' . $date->format('d/m/Y') . 
-                    ' jam ' . $requestedStartTime->format('H:i') . ' - ' . $requestedEndTime->format('H:i') .
-                    '. Sisa unit tersedia: ' . $availableStock
-                );
+                // Cek ketersediaan di slot ini
+                $availableStock = $item->qty - $bookedQuantityOnSlot;
+                if ($availableStock < $validated['quantity']) {
+                    return back()->withInput()->with('error', 
+                        'Stok tidak tersedia pada ' . $date->format('d/m/Y') . 
+                        ' jam ' . $slotStart->format('H:i') . ' - ' . $slotEnd->format('H:i') .
+                        '. Sisa unit tersedia pada slot tersebut: ' . $availableStock
+                    );
+                }
             }
         }
         // --- AKHIR LOGIKA BARU ---
@@ -102,6 +121,7 @@ class SubmissionController extends Controller
                 'user_id'       => auth()->id(),
                 'full_name'     => $validated['nama_lengkap'],
                 'employee_id'   => $validated['nip'],
+                'branch'        => $validated['branch'],
                 'department'    => $validated['departemen'],
                 'inventory_id'  => $validated['inventory_id'],
                 'quantity'      => $validated['quantity'],
@@ -144,16 +164,17 @@ class SubmissionController extends Controller
         $validated = $request->validate([
             'nama_lengkap' => 'required|string|max:255',
             'nip' => 'required|string|max:255',
-            'departemen' => 'required|string',
+            'branch' => ['required', Rule::in($this->validBranches)], // Diperbarui
+            'departemen' => ['required', Rule::in($this->validDepartments)], // Diperbarui
             'nama_barang' => 'required|string|max:255',
             'jumlah' => 'required|integer|min:1',
             'estimasi_harga' => 'required|min:0',
             'link_referensi' => 'nullable|url',
-            'deskripsi_barang' => 'required|string|max:300',
+            'deskripsi_barang' => 'required|string|max:500',
             'judul_pengadaan' => 'required|string|max:255',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'deskripsi_pengadaan' => 'required|string|max:300',
+            'deskripsi_pengadaan' => 'required|string|max:500',
         ]);
 
         $cleanPrice = str_replace('.', '', $request->estimasi_harga);
@@ -162,6 +183,7 @@ class SubmissionController extends Controller
             'user_id' => auth()->id(),
             'full_name' => $validated['nama_lengkap'],
             'employee_id' => $validated['nip'],
+            'branch' => $validated['branch'],
             'department' => $validated['departemen'],
             'item_name' => $validated['nama_barang'],
             'quantity' => $validated['jumlah'],
@@ -172,6 +194,7 @@ class SubmissionController extends Controller
             'start_date' => $validated['tanggal_mulai'],
             'end_date' => $validated['tanggal_selesai'],
             'procurement_description' => $validated['deskripsi_pengadaan'],
+            'status' => 'Pending',
         ]);
 
         // 2. Buat proposal_id dan simpan

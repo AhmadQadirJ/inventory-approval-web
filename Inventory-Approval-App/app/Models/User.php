@@ -19,10 +19,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'nip',
+        'branch',
+        'department',
         'email',
-        'NIP',
         'password',
         'role',
+        'profile_photo_path', // Ensure this line is present
     ];
 
     /**

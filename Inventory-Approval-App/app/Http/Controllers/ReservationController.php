@@ -24,7 +24,7 @@ class ReservationController extends Controller
 
         // --- 2. LOGIKA RIWAYAT PEMINJAMAN (Sisi Kanan) ---
         $query = LendSubmission::where('inventory_id', $inventory->id)
-            ->where('status', 'Accepted')
+            ->where('status', 'like', 'Accepted%')
             ->with('user')
             ->orderBy('start_date');
 
@@ -40,6 +40,7 @@ class ReservationController extends Controller
             return [
                 'proposal_id'   => $submission->proposal_id,
                 'user_name'     => $submission->full_name,
+                'branch'        => $submission->branch,
                 'department'    => $submission->department,
                 'purpose_title' => $submission->purpose_title,
                 'period'        => Carbon::parse($submission->start_date)->format('d/m/Y') . ' - ' . Carbon::parse($submission->end_date)->format('d/m/Y'),

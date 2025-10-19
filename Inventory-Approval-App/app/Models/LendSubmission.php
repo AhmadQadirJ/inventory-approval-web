@@ -10,7 +10,7 @@ class LendSubmission extends Model
     use HasFactory;
 
     protected $fillable = [
-        'proposal_id', 'user_id', 'full_name', 'employee_id', 'department', 'inventory_id',
+        'proposal_id', 'user_id', 'full_name', 'employee_id', 'branch', 'department', 'inventory_id',
         'quantity', 'purpose_title', 'start_date', 'end_date', 
         'start_time', 'end_time', 'description', 'status',
         'approved_by',

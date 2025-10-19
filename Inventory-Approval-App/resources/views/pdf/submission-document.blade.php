@@ -10,18 +10,18 @@
         }
         body {
             font-family: 'Helvetica', sans-serif;
-            font-size: 11pt;
+            font-size: 10pt;
             color: #333;
             line-height: 1.2;
         }
         .header { text-align: left; margin-bottom: 30px; }
-        .header h1 { color: #000; font-size: 32px; margin: 0; }
+        .header h1 { color: #000; font-size: 30px; margin: 0; }
         .header h1 span { color: red; }
-        .header p { margin: 0; font-size: 12px; }
+        .header p { margin: 0; font-size: 10px; }
 
         .info-table {
             width: 100%;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border: none;
         }
         .info-table td {
@@ -32,8 +32,8 @@
         .content-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            margin-bottom: 20px;
+            margin-top: 15px;
+            margin-bottom: 15px;
         }
         .content-table th, .content-table td {
             border: 1px solid #ddd;
@@ -48,24 +48,21 @@
         }
         .signature-container {
             width: 100%;
-            margin-top: 50px;
             text-align: right;
         }
         .signature-box {
-            display: inline-block;
-            text-align: center;
-            width: 250px; /* Lebar area tanda tangan */
-            margin-left: 20px;
+            position: relative; /* Penting untuk positioning stempel */
+            text-align: right;
         }
-        .signature-image {
-            display: block;
-            width: 100%;
-            max-width: 150px; /* Batasi ukuran TTD */
-            height: auto;
-            margin: 5px auto;
+        .text-stamp {
+            font-size: 50px; /* Ukuran font stempel */
+            font-weight: 900;
+            color: #000; /* Warna dasar hitam */
+            opacity: 0.15; /* Opacity rendah agar terlihat berbayang */
+            z-index: -1; /* Posisikan di belakang teks */
         }
-        .signature-logo span {
-            color: #ff0000;
+        .text-stamp span {
+            color: red;
         }
     </style>
 </head>
@@ -100,8 +97,8 @@
             <td width="25%">{{ $submission->full_name }}</td>
         </tr>
         <tr>
-            <td><strong>Tipe Pengajuan</strong></td>
-            <td>{{ $submission->type }}</td>
+            <td><strong>Cabang</strong></td>
+            <td>{{ $submission->branch }}</td>
             <td><strong>Departemen</strong></td>
             <td>{{ $submission->department }}</td>
         </tr>
@@ -184,29 +181,33 @@
     <p>Demikian surat persetujuan ini dibuat untuk dapat dipergunakan sebagaimana mestinya.</p>
     <p>Atas perhatian dan kerjasamanya, kami ucapkan terimakasih.</p>
 
-    <div class="signature-container">
+    <div class="footer-container">
         <div class="signature-box">
-            <p style="margin-bottom: 50px;">Bandung, {{ \Carbon\Carbon::now()->format('d F Y') }}</p>
+            <p>Bandung, {{ $submission->updated_at->format('d F Y') }}</p>
+            {{-- Stempel Teks Digital --}}
+            <div class="text-stamp">WIT<span>.</span></div>
 
-            <p>Disetujui oleh:</p>
-            
-            {{-- TANDA TANGAN DIGITAL (WIT ID STAMP) --}}
-            @if($submission->final_approver_ttd_path)
-                <img src="{{ public_path($submission->final_approver_ttd_path) }}" 
-                     class="signature-image" alt="Digital Signature">
-            @else
-                <div style="height: 100px;">[TTD Stamp Not Found]</div>
-            @endif
+            {{-- Spacer untuk memberikan ruang (ukurannya dikurangi) --}}
+            <div style="height: 10px;"></div>
 
-            <p style="margin-top: 5px; margin-bottom: 2px;">
-                <u style="font-weight: bold;">{{ $submission->final_approver_name ?? 'Nama Approver' }}</u>
-            </p>
-            <p style="font-size: 10pt; margin-top: 0;">
-                NIP: {{ $submission->final_approver_nip ?? '-' }}
-            </p>
-            <p style="font-size: 10pt;">
-                ({{ $submission->status == 'Accepted - COO' ? 'Chief Operating Officer' : ($submission->status == 'Accepted - CHRD' ? 'Chief Human Resources Development' : 'Pejabat Approval') }})
-            </p>
+            {{-- Informasi Approver dirapatkan --}}
+            <div>
+                <p style="margin: 0; line-height: 1.2;">
+                    <u style="font-weight: bold;">{{ $submission->final_approver_name ?? 'Nama Approver' }}</u>
+                </p>
+                <p style="font-size: 10pt; margin: 0; line-height: 1.2;">
+                    NIP: {{ $submission->final_approver_nip ?? 'N/A' }}
+                </p>
+                <p style="font-size: 10pt; margin: 0; line-height: 1.2;">
+                    @if(Str::contains($submission->status, 'COO'))
+                        (Chief Operating Officer)
+                    @elseif(Str::contains($submission->status, 'CHRD'))
+                        (Chief Human Resources Development)
+                    @else
+                        (Pejabat Approval)
+                    @endif
+                </p>
+            </div>
         </div>
     </div>
 

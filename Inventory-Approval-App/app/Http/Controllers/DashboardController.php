@@ -22,16 +22,16 @@ class DashboardController extends Controller
         $procureSubmissions = ProcureSubmission::where('user_id', $userId)->get();
 
         // 2. Gabungkan semua data, pastikan Peminjaman mengambil nama dari relasi
-        $allSubmissions = $lendSubmissions->map(function ($item) {
+        $allSubmissions = collect($lendSubmissions->map(function ($item) {
             return (object) [
                 'id' => $item->proposal_id,
                 'type' => 'Peminjaman',
-                'item' => $item->inventory?->nama, // <-- PERUBAHAN UTAMA
+                'item' => $item->inventory?->nama,
                 'purpose' => $item->purpose_title,
                 'date' => $item->created_at,
                 'status' => $item->status,
             ];
-        })->merge($procureSubmissions->map(function ($item) {
+        }))->merge(collect($procureSubmissions->map(function ($item) {
             return (object) [
                 'id' => $item->proposal_id,
                 'type' => 'Pembelian',
@@ -40,7 +40,8 @@ class DashboardController extends Controller
                 'date' => $item->created_at,
                 'status' => $item->status,
             ];
-        }));
+        })));
+
 
         // 3. Ambil data terbaru untuk tabel "Latest Submission"
         $latestSubmissions = $allSubmissions->sortByDesc('date')->take(5)->map(function($item) {

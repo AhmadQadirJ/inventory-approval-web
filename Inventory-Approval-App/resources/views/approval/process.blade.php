@@ -1,4 +1,27 @@
 <x-app-layout>
+    
+    {{-- BLOK KODE BARU UNTUK MODAL ERROR --}}
+    @if (session('error'))
+        <div x-data="{ open: true }" x-show="open" x-cloak
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div @click.away="open = false" class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900">Approval Gagal</h3>
+                <div class="mt-2 text-sm text-gray-600">
+                    <p>{{ session('error') }}</p>
+                </div>
+                <div class="mt-4">
+                    <button @click="open = false" type="button" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+    {{-- AKHIR BLOK KODE BARU --}}
+
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <a href="{{ route('approval.index') }}" class="inline-flex items-center mb-4 text-gray-600 hover:text-gray-900">
@@ -45,6 +68,10 @@
                             <div>
                                 <label class="font-medium text-gray-500">ID Karyawan/NIP</label>
                                 <p class="text-gray-800 mt-1">{{ $submission->employee_id }}</p>
+                            </div>
+                            <div>
+                                <label class="font-medium text-gray-500">Cabang</label>
+                                <p class="text-gray-800 mt-1">{{ $submission->branch }}</p>
                             </div>
                             <div>
                                 <label class="font-medium text-gray-500">Departemen</label>

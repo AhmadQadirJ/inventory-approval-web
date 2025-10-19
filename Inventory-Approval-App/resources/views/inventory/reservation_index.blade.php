@@ -86,6 +86,7 @@
                                     <tr>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Peminjam</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Divisi</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tujuan</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Periode</th>
@@ -97,6 +98,7 @@
                                         <tr>
                                             <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{{ $history['proposal_id'] }}</td>
                                             <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{{ $history['user_name'] }}</td>
+                                            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{{ $history['branch'] }}</td>
                                             <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{{ $history['department'] }}</td>
                                             <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{{ $history['purpose_title'] }}</td>
                                             <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{{ $history['period'] }} ({{ $history['time'] }})</td>

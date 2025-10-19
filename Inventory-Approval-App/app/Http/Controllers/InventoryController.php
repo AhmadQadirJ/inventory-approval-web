@@ -142,7 +142,7 @@ class InventoryController extends Controller
         $activeOnlyToday = $request->input('active_today');
 
         $query = LendSubmission::where('inventory_id', $inventory->id)
-            ->where('status', 'Accepted')
+            ->where('status', 'like', 'Accepted%')
             ->with('user') // Eager load untuk efisiensi
             ->orderBy('start_date');
 
@@ -162,6 +162,7 @@ class InventoryController extends Controller
                 'user_name'     => $submission->full_name,
                 'department'    => $submission->department, // Memastikan 'department' ada di sini
                 'purpose_title' => $submission->purpose_title,
+                'branch'        => $submission->branch,
                 'period'        => Carbon::parse($submission->start_date)->format('d/m/Y') . ' - ' . Carbon::parse($submission->end_date)->format('d/m/Y'),
                 'time'          => \Carbon\Carbon::parse($submission->start_time)->format('H:i') . ' - ' . \Carbon\Carbon::parse($submission->end_time)->format('H:i'),
                 'status'        => $submission->status
@@ -189,7 +190,7 @@ class InventoryController extends Controller
 
         return response()->json($categories);
     }
-    
+
     public function getItemsForCategory(Request $request)
     {
         $branch = $request->query('branch');

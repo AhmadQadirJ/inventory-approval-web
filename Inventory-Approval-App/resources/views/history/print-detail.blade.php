@@ -11,7 +11,7 @@
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            font-size: 10pt; /* Ukuran font dasar diperkecil */
+            font-size: 9pt; /* Ukuran font dasar diperkecil */
             color: #333;
             line-height: 1.2; /* Jarak antar baris dipersempit */
         }
@@ -19,7 +19,7 @@
             width: 100%;
         }
         h1 {
-            font-size: 22pt; /* Ukuran judul utama diperkecil */
+            font-size: 18pt; /* Ukuran judul utama diperkecil */
             font-weight: bold;
             text-align: center;
             border-bottom: 1px solid #333;
@@ -27,7 +27,7 @@
             margin-bottom: 25px;
         }
         h2 {
-            font-size: 13pt; /* Ukuran sub-judul diperkecil */
+            font-size: 10pt; /* Ukuran sub-judul diperkecil */
             font-weight: bold;
             color: #333;
             background-color: #f2f2f2;
@@ -122,6 +122,10 @@
                 <td>{{ $submission->employee_id }}</td>
             </tr>
             <tr>
+                <td>Branch</td>
+                <td>{{ $submission->branch }}</td>
+            </tr>
+            <tr>
                 <td>Departemen</td>
                 <td>{{ $submission->department }}</td>
             </tr>
@@ -213,7 +217,7 @@
             @endforelse
 
             {{-- Menampilkan status saat ini jika belum selesai --}}
-            @if($submission->status != 'Accepted' && !Str::startsWith($submission->status, 'Rejected'))
+           @if(!Str::startsWith($submission->status, 'Accepted') && !Str::startsWith($submission->status, 'Rejected'))
                 <li class="in-progress">
                     <div class="timeline-status">{{ $submission->status }}</div>
                     <div class="timeline-meta">On Progress</div>

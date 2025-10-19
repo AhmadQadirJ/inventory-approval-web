@@ -129,7 +129,7 @@ class HistoryController extends Controller
         }
 
         // Pastikan user hanya bisa print proposal miliknya yang sudah 'Accepted'
-        if (!$submission || $submission->user_id !== Auth::id() || $submission->status !== 'Accepted') {
+        if (!$submission || $submission->user_id !== Auth::id() || !Str::startsWith($submission->status, 'Accepted')) {
             abort(403, 'Unauthorized Action or Submission Not Accepted.');
         }
         $submission->type = $type;

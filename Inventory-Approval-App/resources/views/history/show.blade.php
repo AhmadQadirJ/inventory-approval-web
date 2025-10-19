@@ -50,6 +50,10 @@
                                 <p class="text-gray-800 mt-1">{{ $submission->employee_id }}</p>
                             </div>
                             <div>
+                                <label class="font-medium text-gray-500">Branch</label>
+                                <p class="text-gray-800 mt-1">{{ $submission->branch }}</p>
+                            </div>
+                            <div>
                                 <label class="font-medium text-gray-500">Departemen</label>
                                 <p class="text-gray-800 mt-1">{{ $submission->department }}</p>
                             </div>
@@ -199,7 +203,7 @@
                                 @endforelse
 
                                 {{-- Menampilkan status SAAT INI jika belum selesai --}}
-                                @if($submission->status != 'Accepted' && !Str::startsWith($submission->status, 'Rejected'))
+                                @if(!Str::startsWith($submission->status, 'Accepted') && !Str::startsWith($submission->status, 'Rejected'))
                                     <li>
                                         <div class="flex items-start">
                                             <div class="h-5 w-5 rounded-full bg-gray-400 flex-shrink-0 mt-1 animate-pulse"></div>
@@ -219,7 +223,7 @@
                         <a href="{{ route('history') }}" class="px-8 py-2 bg-white border border-gray-300 rounded-md font-semibold text-gray-700 hover:bg-gray-50">Kembali</a>
 
                         {{-- Tombol Print PDF Kondisional --}}
-                        @if ($submission->status == 'Accepted')
+                        @if (Str::startsWith($submission->status, 'Accepted'))
                             @php
                                 // Cek apakah halaman saat ini adalah bagian dari approval flow atau history flow
                                 $printRoute = request()->routeIs('approval.show') 

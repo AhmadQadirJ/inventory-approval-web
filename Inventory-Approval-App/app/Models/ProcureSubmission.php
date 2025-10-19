@@ -11,7 +11,7 @@ class ProcureSubmission extends Model
 
     protected $fillable = [
         'proposal_id', // <-- Tambahkan ini
-        'user_id', 'full_name', 'employee_id', 'department', 'item_name',
+        'user_id', 'full_name', 'employee_id', 'branch', 'department', 'item_name',
         'quantity', 'estimated_price', 'reference_link', 'item_description',
         'purpose_title', 'start_date', 'end_date', 'procurement_description', 'status',
         'approved_by',
