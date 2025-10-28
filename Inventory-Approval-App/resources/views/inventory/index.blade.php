@@ -22,37 +22,64 @@
                 
                 {{-- Filter & Search Bar --}}
                 <div class="mb-4">
-                    {{-- Diperbarui untuk menunjuk ke route 'inventory.index' --}}
-                    <form action="{{ route('inventory') }}" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <form action="{{ route('inventory') }}" method="GET" id="filterForm"
+                        class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
                         <div class="md:col-span-2">
                             <label for="search" class="block text-sm font-medium text-gray-700">Search (Name, Code, Brand)</label>
-                            <input type="text" id="search" name="search" value="{{ request('search') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <input type="text" id="search" name="search" value="{{ request('search') }}"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
+                                placeholder="Type to search...">
                         </div>
+
                         <div>
                             <label for="kategori" class="block text-sm font-medium text-gray-700">Category</label>
-                            <select name="kategori" id="kategori" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="kategori" id="kategori"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">All Categories</option>
                                 @foreach ($categories as $category)
                                     <option value="{{ $category }}" @if(request('kategori') == $category) selected @endif>{{ $category }}</option>
                                 @endforeach
                             </select>
                         </div>
+
                         <div>
                             <label for="branch" class="block text-sm font-medium text-gray-700">Branch</label>
-                            <select name="branch" id="branch" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="branch" id="branch"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">All Branches</option>
                                 @foreach ($branches as $branch)
                                     <option value="{{ $branch }}" @if(request('branch') == $branch) selected @endif>{{ $branch }}</option>
                                 @endforeach
                             </select>
                         </div>
+
                         <div class="col-span-1 md:col-span-4 flex items-center space-x-2">
-                            <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700">Filter</button>
-                            {{-- Diperbarui untuk menunjuk ke route 'inventory.index' --}}
-                            <a href="{{ route('inventory') }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">Reset</a>
+                            <a href="{{ route('inventory') }}"
+                            class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">Reset</a>
                         </div>
                     </form>
                 </div>
+
+                {{-- Auto-submit script --}}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const form = document.getElementById('filterForm');
+
+                        // Untuk dropdown filter
+                        form.querySelectorAll('select').forEach(select => {
+                            select.addEventListener('change', () => form.submit());
+                        });
+
+                        // Untuk search input (auto-submit setelah user berhenti mengetik 0.8s)
+                        const searchInput = document.getElementById('search');
+                        let timeout = null;
+                        searchInput.addEventListener('input', () => {
+                            clearTimeout(timeout);
+                            timeout = setTimeout(() => form.submit(), 800);
+                        });
+                    });
+                </script>
 
                 {{-- Tampilan Grid Kartu --}}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

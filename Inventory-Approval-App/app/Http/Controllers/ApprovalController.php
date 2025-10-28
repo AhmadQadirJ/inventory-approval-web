@@ -29,22 +29,22 @@ class ApprovalController extends Controller
         if ($search) {
             $lendSubmissionsQuery->where(function ($query) use ($search) {
                 $query->where('proposal_id', 'like', "%{$search}%")
-                      ->orWhere('purpose_title', 'like', "%{$search}%")
-                      ->orWhere('branch', 'like', "%{$search}%") // <-- Tambahan
-                      ->orWhere('status', 'like', "%{$search}%") // <-- Tambahan
-                      ->orWhere('type', 'like', "%Peminjaman%") // <-- Tambahan
-                      ->orWhereHas('inventory', function ($q) use ($search) {
-                          $q->where('nama', 'like', "%{$search}%");
-                      });
+                    ->orWhere('purpose_title', 'like', "%{$search}%")
+                    ->orWhere('branch', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereRaw("LOWER('Peminjaman') LIKE ?", ["%".strtolower($search)."%"])
+                    ->orWhereHas('inventory', function ($q) use ($search) {
+                        $q->where('nama', 'like', "%{$search}%");
+                    });
             });
             
             $procureSubmissionsQuery->where(function ($query) use ($search) {
                 $query->where('proposal_id', 'like', "%{$search}%")
-                      ->orWhere('item_name', 'like', "%{$search}%")
-                      ->orWhere('purpose_title', 'like', "%{$search}%")
-                      ->orWhere('branch', 'like', "%{$search}%") // <-- Tambahan
-                      ->orWhere('status', 'like', "%{$search}%") // <-- Tambahan
-                      ->orWhere('type', 'like', "%Pengadaan%"); // <-- Tambahan
+                    ->orWhere('item_name', 'like', "%{$search}%")
+                    ->orWhere('purpose_title', 'like', "%{$search}%")
+                    ->orWhere('branch', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereRaw("LOWER('Pengadaan') LIKE ?", ["%".strtolower($search)."%"]);
             });
         }
 
@@ -81,20 +81,15 @@ class ApprovalController extends Controller
         if ($waitingOnly) {
             $submissions = $submissions->filter(function ($submission) use ($userRole) {
                 switch ($userRole) {
-                    case 'General Affair': 
-                        return $submission->status === 'Pending';
-                    // case 'Manager': DIHAPUS
-                    case 'Finance': 
-                        // Finance hanya melihat Pengadaan dari GA (Type B)
-                        return $submission->type === 'Pengadaan' && $submission->status === 'Processed - GA';
-                    case 'COO': 
-                        // COO melihat Peminjaman dari GA (Type A)
-                        return $submission->type === 'Peminjaman' && $submission->status === 'Processed - GA';
-                    case 'CHRD': 
-                        // CHRD melihat Peminjaman (Parallel) ATAU Pengadaan (Sequential)
-                        return ($submission->type === 'Peminjaman' && $submission->status === 'Processed - GA') || 
-                               ($submission->type === 'Pengadaan' && $submission->status === 'Processed - Finance');
-                    default: 
+                    case 'General Affair':
+                        return in_array($submission->status, ['Pending', 'Processed - GA']);
+                    case 'Manager':
+                        return $submission->status === 'Processed - Manager';
+                    case 'Finance':
+                        return $submission->status === 'Processed - Finance';
+                    case 'COO':
+                        return $submission->status === 'Processed - COO';
+                    default:
                         return false;
                 }
             });
@@ -102,19 +97,21 @@ class ApprovalController extends Controller
 
         if ($statusFilter) {
             $submissions = $submissions->filter(function ($submission) use ($statusFilter) {
-                if (in_array($statusFilter, ['Rejected', 'Processed'])) {
-                    return Str::startsWith($submission->status, $statusFilter);
-                }
-                return $submission->status === $statusFilter;
+                return Str::contains($submission->status, $statusFilter);
             });
         }
+
 
         $submissions = $submissions->sortByDesc('date');
 
         $waitingForApprovalCount = 0;
         switch ($userRole) {
             case 'General Affair':
+                // Hitung HANYA dari data yang sudah difilter
                 $waitingForApprovalCount = $submissions->whereIn('status', ['Pending', 'Processed - GA'])->count();
+                break;
+            case 'Manager':
+                $waitingForApprovalCount = $submissions->where('status', 'Processed - Manager')->count();
                 break;
             case 'Finance':
                 $waitingForApprovalCount = $submissions->where('status', 'Processed - Finance')->count();
@@ -122,9 +119,6 @@ class ApprovalController extends Controller
             case 'COO':
                 $waitingForApprovalCount = $submissions->where('status', 'Processed - COO')->count();
                 break;
-            case 'CHRD':
-                $waitingForApprovalCount = $submissions->where('status', 'Processed - CHRD')->count();
-            break;
         }
 
         return view('approval.index', [

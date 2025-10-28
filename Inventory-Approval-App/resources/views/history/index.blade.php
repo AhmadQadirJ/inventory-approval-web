@@ -26,17 +26,22 @@
 
                 {{-- Search and Filter Bar --}}
                 <div class="mb-4">
-                    <form action="{{ route('history') }}" method="GET" class="flex flex-col md:flex-row md:items-center md:space-x-4">
+                    <form action="{{ route('history') }}" method="GET" id="filterForm"
+                        class="flex flex-col md:flex-row md:items-center md:space-x-4">
+
                         {{-- Search Input --}}
                         <div class="flex-grow">
                             <label for="search" class="block text-sm font-medium text-gray-700">Search :</label>
-                            <input type="text" id="search" name="search" value="{{ request('search') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <input type="text" id="search" name="search" value="{{ request('search') }}"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Type to search...">
                         </div>
 
                         {{-- Status Filter Dropdown --}}
                         <div class="mt-2 md:mt-0">
                             <label for="status_filter" class="block text-sm font-medium text-gray-700">Filter by Status:</label>
-                            <select name="status_filter" id="status_filter" onchange="this.form.submit()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <select name="status_filter" id="status_filter"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                                 <option value="">All Statuses</option>
                                 <option value="Pending"   @if(request('status_filter') == 'Pending') selected @endif>Show Only Pending</option>
                                 <option value="Accepted"  @if(request('status_filter') == 'Accepted') selected @endif>Show Only Accepted</option>
@@ -47,13 +52,35 @@
 
                         {{-- Action Buttons --}}
                         <div class="flex items-end space-x-2 mt-4 md:mt-0">
-                            <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-700">Search</button>
                             @if(request('search') || request('status_filter'))
-                                <a href="{{ route('history') }}" class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">Reset</a>
+                                <a href="{{ route('history') }}"
+                                class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50">
+                                    Reset
+                                </a>
                             @endif
                         </div>
                     </form>
                 </div>
+
+                {{-- Auto-submit script --}}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const form = document.getElementById('filterForm');
+                        const searchInput = document.getElementById('search');
+                        const statusSelect = document.getElementById('status_filter');
+
+                        // Submit when dropdown changes
+                        statusSelect.addEventListener('change', () => form.submit());
+
+                        // Submit automatically when user stops typing for 0.8s
+                        let typingTimer;
+                        searchInput.addEventListener('input', () => {
+                            clearTimeout(typingTimer);
+                            typingTimer = setTimeout(() => form.submit(), 800);
+                        });
+                    });
+                </script>
+
 
                 {{-- Tabel Data --}}
                 <div class="overflow-x-auto">

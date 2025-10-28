@@ -25,21 +25,24 @@ class HistoryController extends Controller
         $procureSubmissionsQuery = ProcureSubmission::where('user_id', $userId);
 
         if ($search) {
-            // Modifikasi query pencarian untuk Lend
             $lendSubmissionsQuery->where(function ($query) use ($search) {
                 $query->where('proposal_id', 'like', "%{$search}%")
-                    // Cari di dalam relasi 'inventory' untuk nama barang
+                    ->orWhere('purpose_title', 'like', "%{$search}%")
+                    ->orWhere('branch', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereRaw("LOWER('Peminjaman') LIKE ?", ["%".strtolower($search)."%"])
                     ->orWhereHas('inventory', function ($q) use ($search) {
                         $q->where('nama', 'like', "%{$search}%");
-                    })
-                    ->orWhere('purpose_title', 'like', "%{$search}%");
+                    });
             });
             
-            // Query pencarian untuk Procure tetap sama
             $procureSubmissionsQuery->where(function ($query) use ($search) {
                 $query->where('proposal_id', 'like', "%{$search}%")
                     ->orWhere('item_name', 'like', "%{$search}%")
-                    ->orWhere('purpose_title', 'like', "%{$search}%");
+                    ->orWhere('purpose_title', 'like', "%{$search}%")
+                    ->orWhere('branch', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhereRaw("LOWER('Pengadaan') LIKE ?", ["%".strtolower($search)."%"]);
             });
         }
 
@@ -70,19 +73,25 @@ class HistoryController extends Controller
 
         if ($statusFilter) {
             $submissions = $submissions->filter(function ($submission) use ($statusFilter) {
-                if ($statusFilter === 'Rejected' || $statusFilter === 'Processed') {
-                    return Str::startsWith($submission->status, $statusFilter);
-                }
-                return $submission->status === $statusFilter;
+                return Str::contains($submission->status, $statusFilter);
             });
         }
 
         $submissions = $submissions->sortByDesc('date');
 
-        $pendingCount = $submissions->where('status', 'Pending')->count();
-        $acceptedCount = $submissions->where('status', operator: ('Accepted' || 'Accepted - COO' || 'Accepted - CHRD'))->count();
-        $rejectedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Rejected'))->count();
-        $processedCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Processed'))->count();
+        $pendingCount = $submissions->filter(fn($item) => Str::startsWith($item->status, 'Pending'))->count();
+
+        $acceptedCount = $submissions->filter(fn($item) =>
+            Str::startsWith($item->status, 'Accepted')
+        )->count();
+
+        $rejectedCount = $submissions->filter(fn($item) =>
+            Str::startsWith($item->status, 'Rejected')
+        )->count();
+
+        $processedCount = $submissions->filter(fn($item) =>
+            Str::startsWith($item->status, 'Processed')
+        )->count();
 
         return view('history.index', compact('submissions', 'pendingCount', 'acceptedCount', 'rejectedCount', 'processedCount'));
     }
