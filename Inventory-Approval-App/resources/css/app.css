@@ -7,7 +7,7 @@ body {
 }
 
 .block.h-9.w-auto {
-    height: 3rem !important; /* Coba ganti nilainya */
-    max-height: none !important; /* Hapus batasan max-height */
-    overflow: visible !important; /* Pastikan tidak terpotong */
+    height: 3rem !important; 
+    max-height: none !important; 
+    overflow: visible !important; 
 }

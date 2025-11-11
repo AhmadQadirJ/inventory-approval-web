@@ -22,7 +22,6 @@ class ApprovalController extends Controller
         $statusFilter = $request->input('status_filter');
         $waitingOnly = $request->input('waiting');
 
-        // Eager load relasi 'inventory' untuk efisiensi
         $lendSubmissionsQuery = LendSubmission::with('inventory');
         $procureSubmissionsQuery = ProcureSubmission::query();
 
@@ -55,7 +54,7 @@ class ApprovalController extends Controller
         $mappedLend = $lendSubmissions->map(fn($item) => (object) [
             'id' => $item->proposal_id,
             'type' => 'Peminjaman',
-            'item' => $item->inventory?->nama, // Mengambil dari relasi
+            'item' => $item->inventory?->nama,
             'purpose' => $item->purpose_title,
             'date' => $item->created_at->format('d/m/Y'),
             'status' => $item->status,
@@ -73,7 +72,6 @@ class ApprovalController extends Controller
             'branch' => $item->branch,
         ]);
 
-        // Gabungkan kedua hasil mapping
         $submissions = new \Illuminate\Support\Collection(array_merge($mappedLend->all(), $mappedProcure->all()));
 
         $userRole = auth()->user()->role;
@@ -107,7 +105,6 @@ class ApprovalController extends Controller
         $waitingForApprovalCount = 0;
         switch ($userRole) {
             case 'General Affair':
-                // Hitung HANYA dari data yang sudah difilter
                 $waitingForApprovalCount = $submissions->whereIn('status', ['Pending', 'Processed - GA'])->count();
                 break;
             case 'Manager':
@@ -144,7 +141,6 @@ class ApprovalController extends Controller
         }
 
         if ($submission && $submission->status === 'Pending') {
-            // Catat status "Pending" yang telah selesai
             SubmissionTimeline::create([
                 'submission_id'   => $submission->id,
                 'submission_type' => $submissionType,
@@ -153,7 +149,6 @@ class ApprovalController extends Controller
                 'user_id'         => auth()->id(),
             ]);
 
-            // Update status utama ke tahap berikutnya
             $submission->status = 'Processed - GA';
             $submission->save();
 
@@ -195,13 +190,10 @@ class ApprovalController extends Controller
             abort(404);
         }
 
-        // Eager load relasi timeline dan user yang terkait
         $submission->load('timelines.user');
 
-        // Tambahkan properti 'type' ke objek untuk digunakan di view
         $submission->type = $type;
 
-        // Kita gunakan kembali view dari halaman history
         return view('history.show', [
             'submission' => $submission
         ]);
@@ -224,7 +216,6 @@ class ApprovalController extends Controller
         $currentStatus = $submission->status;
         $nextStatus = $currentStatus;
 
-        // Tentukan status selanjutnya berdasarkan alur baru
         if ($submissionType === 'lend') {
             if ($userRole === 'General Affair' && $currentStatus === 'Processed - GA') {
                 $nextStatus = 'Processed - COO/CHRD';
@@ -243,8 +234,7 @@ class ApprovalController extends Controller
         }
 
         if ($nextStatus !== $currentStatus) {
-            // --- LOGIKA PENGECEKAN KETERSEDIAAN SAAT APPROVAL ---
-            // Lakukan pengecekan ini HANYA jika ini adalah langkah approval FINAL (menuju status 'Accepted')
+
             if (Str::startsWith($nextStatus, 'Accepted') && $submissionType === 'lend') {
                 $item = $submission->inventory;
                 $requestedQuantity = $submission->quantity;
@@ -252,17 +242,15 @@ class ApprovalController extends Controller
                 $requestedStartTime = Carbon::parse($submission->start_time);
                 $requestedEndTime = Carbon::parse($submission->end_time);
 
-                // Ambil SEMUA booking lain yang sudah disetujui
                 $conflictingBookings = LendSubmission::where('inventory_id', $item->id)
                     ->where('status', 'like', 'Accepted%')
-                    ->where('id', '!=', $submission->id) // <-- Kecualikan proposal ini
+                    ->where('id', '!=', $submission->id)
                     ->where(function ($query) use ($submission) {
                         $query->whereDate('start_date', '<=', $submission->end_date)
                             ->whereDate('end_date', '>=', $submission->start_date);
                     })
                     ->get();
 
-                // Periksa ketersediaan untuk setiap hari yang diminta
                 foreach ($requestedPeriod as $date) {
                     $checkSlots = CarbonPeriod::create($requestedStartTime, '30 minutes', $requestedEndTime->copy()->subMinute());
                     foreach ($checkSlots as $slotStart) {
@@ -281,7 +269,6 @@ class ApprovalController extends Controller
 
                         $availableStock = $item->qty - $bookedQuantityOnSlot;
                         if ($availableStock < $requestedQuantity) {
-                            // JIKA GAGAL, kembalikan ke halaman proses dengan pesan error
                             return back()->with('error', 
                                 'Approval Gagal: Stok tidak tersedia pada ' . $date->format('d/m/Y') . 
                                 ' jam ' . $slotStart->format('H:i') . ' - ' . $slotEnd->format('H:i') .
@@ -291,9 +278,7 @@ class ApprovalController extends Controller
                     }
                 }
             }
-            // --- AKHIR LOGIKA PENGECEKAN ---
 
-            // Catat status LAMA (yang baru saja selesai) ke timeline
             SubmissionTimeline::create([
                 'submission_id'   => $submission->id,
                 'submission_type' => $submissionType,
@@ -302,12 +287,10 @@ class ApprovalController extends Controller
                 'user_id'         => $approver->id,
             ]);
 
-            // Jika ini adalah persetujuan final, simpan detail approver
             if (Str::startsWith($nextStatus, 'Accepted')) {
                 $submission->final_approver_name = $approver->name;
                 $submission->final_approver_nip = $approver->nip ?? 'N/A';
 
-                // Tambahkan satu entri timeline lagi untuk status "Accepted" final
                 SubmissionTimeline::create([
                     'submission_id'   => $submission->id,
                     'submission_type' => $submissionType,
@@ -317,7 +300,6 @@ class ApprovalController extends Controller
                 ]);
             }
 
-            // Update status utama proposal
             $submission->status = $nextStatus;
             $submission->save();
 
@@ -332,7 +314,6 @@ class ApprovalController extends Controller
         $submission = null;
         $submissionType = null;
 
-        // LENGKAPI LOGIKA PENCARIAN INI
         if (Str::startsWith($proposal_id, 'A-')) {
             $submission = LendSubmission::findOrFail($request->id);
             $submissionType = 'lend';
@@ -342,22 +323,19 @@ class ApprovalController extends Controller
         } else {
             abort(404);
         }
-        // ---
 
         $userRole = Auth::user()->role;
         $currentStatus = $submission->status; 
 
-        // Tentukan status Rejected berdasarkan role saat ini
         $newStatus = 'Rejected - ' . $userRole;
-        
-        // Update status utama proposal
+
         $submission->status = $newStatus;
         $submission->save();
 
         SubmissionTimeline::create([
             'submission_id' => $submission->id,
             'submission_type' => $submissionType,
-            'status' => $newStatus, // Catat status Rejected final
+            'status' => $newStatus,
             'notes' => $request->notes ?? "Rejected by {$userRole}.",
             'user_id' => auth()->id(),
         ]);
@@ -378,7 +356,6 @@ class ApprovalController extends Controller
             $type = 'Pengadaan';
         }
 
-        // Pemeriksaan keamanan untuk approver
         if (!$submission || !Str::startsWith($submission->status, 'Accepted')) {
             abort(403, 'Submission Not Accepted or Not Found.');
         }
@@ -401,7 +378,6 @@ class ApprovalController extends Controller
 
     public function printDetail($proposal_id)
     {
-        // Logika untuk menemukan submission (sama seperti di method show)
         $submission = null; $type = null;
         if (Str::startsWith($proposal_id, 'A-')) {
             $submission = LendSubmission::where('proposal_id', $proposal_id)->firstOrFail(); $type = 'Peminjaman';
@@ -413,7 +389,6 @@ class ApprovalController extends Controller
 
         $pdf = Pdf::loadView('history.print-detail', ['submission' => $submission]);
 
-        // Kita gunakan kembali view yang sama
         return $pdf->stream('detail-' . $submission->proposal_id . '.pdf');
     }
 }

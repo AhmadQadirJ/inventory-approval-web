@@ -66,12 +66,10 @@
                     document.addEventListener('DOMContentLoaded', function () {
                         const form = document.getElementById('filterForm');
 
-                        // Untuk dropdown filter
                         form.querySelectorAll('select').forEach(select => {
                             select.addEventListener('change', () => form.submit());
                         });
 
-                        // Untuk search input (auto-submit setelah user berhenti mengetik 0.8s)
                         const searchInput = document.getElementById('search');
                         let timeout = null;
                         searchInput.addEventListener('input', () => {

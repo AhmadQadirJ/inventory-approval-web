@@ -69,10 +69,8 @@
                         const searchInput = document.getElementById('search');
                         const statusSelect = document.getElementById('status_filter');
 
-                        // Submit when dropdown changes
                         statusSelect.addEventListener('change', () => form.submit());
 
-                        // Submit automatically when user stops typing for 0.8s
                         let typingTimer;
                         searchInput.addEventListener('input', () => {
                             clearTimeout(typingTimer);

@@ -108,10 +108,8 @@
                                     document.addEventListener("DOMContentLoaded", function () {
                                     const hargaInput = document.getElementById('estimasi_harga');
                                         hargaInput.addEventListener('input', function (e) {
-                                            // hapus semua karakter non-angka
                                             let value = e.target.value.replace(/\D/g, '');
 
-                                            // format ribuan pakai titik
                                             if (value) {
                                                 e.target.value = new Intl.NumberFormat('id-ID').format(value);
                                             } else {

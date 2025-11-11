@@ -18,7 +18,6 @@ class EnsureUserHasApprovalRole
         $allowedRoles = ['General Affair', 'Finance', 'COO', 'CHRD'];
 
         if (!in_array($request->user()->role, $allowedRoles)) {
-            // Jika role tidak diizinkan, kembalikan ke halaman dashboard
             return redirect('/dashboard');
         }
 

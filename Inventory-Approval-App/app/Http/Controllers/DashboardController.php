@@ -15,13 +15,13 @@ class DashboardController extends Controller
     {
         $userId = Auth::id();
 
-        // 1. Ambil data Peminjaman (Lend) dengan relasi ke Inventory (Eager Loading)
+        // Ambil data Peminjaman (Lend)
         $lendSubmissions = LendSubmission::with('inventory')->where('user_id', $userId)->get();
         
         // Ambil data Pengadaan (Procure)
         $procureSubmissions = ProcureSubmission::where('user_id', $userId)->get();
 
-        // 2. Gabungkan semua data, pastikan Peminjaman mengambil nama dari relasi
+        // Gabungkan semua data
         $allSubmissions = collect($lendSubmissions->map(function ($item) {
             return (object) [
                 'id' => $item->proposal_id,
@@ -43,13 +43,13 @@ class DashboardController extends Controller
         })));
 
 
-        // 3. Ambil data terbaru untuk tabel "Latest Submission"
+        // Ambil data terbaru
         $latestSubmissions = $allSubmissions->sortByDesc('date')->take(5)->map(function($item) {
             $item->date = $item->date->format('d/m/Y');
             return $item;
         });
 
-        // 4. Hitung statistik untuk cards (akan otomatis benar)
+        // Hitung statistik untuk cards
         $pendingCount = $allSubmissions->filter(fn($item) => Str::startsWith($item->status, 'Pending'))->count();
 
         $acceptedCount = $allSubmissions->filter(fn($item) =>
@@ -64,7 +64,7 @@ class DashboardController extends Controller
             Str::startsWith($item->status, 'Processed')
         )->count();
 
-        // 5. Kirim semua data ke view
+        // Kirim semua data ke view
         return view('dashboard', [
             'latestSubmissions' => $latestSubmissions,
             'pendingCount' => $pendingCount,

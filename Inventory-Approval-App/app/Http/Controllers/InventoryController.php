@@ -47,17 +47,11 @@ class InventoryController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return view('inventory.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -71,10 +65,9 @@ class InventoryController extends Controller
             'vendor_link' => 'nullable|url',
             'qty' => 'required|integer|min:0',
             'deskripsi' => 'nullable|string',
-            'gambar' => 'nullable|image|max:2048', // max 2MB
+            'gambar' => 'nullable|image|max:2048',
         ]);
 
-        // Buat Kode Otomatis
         $branchCode = strtoupper(substr($validated['branch'], 0, 1));
         $categoryCode = '';
         if ($validated['kategori'] == 'Elektronik') $categoryCode = 'E';
@@ -143,10 +136,9 @@ class InventoryController extends Controller
 
         $query = LendSubmission::where('inventory_id', $inventory->id)
             ->where('status', 'like', 'Accepted%')
-            ->with('user') // Eager load untuk efisiensi
+            ->with('user')
             ->orderBy('start_date');
 
-        // Terapkan filter jika checkbox aktif
         if ($activeOnlyToday) {
             $today = Carbon::today();
             $query->whereDate('start_date', '<=', $today)
@@ -155,12 +147,11 @@ class InventoryController extends Controller
 
         $activeSubmissions = $query->get();
 
-        // Format data untuk ditampilkan di tabel riwayat
         $reservationHistory = $activeSubmissions->map(function ($submission) {
             return [
                 'proposal_id'   => $submission->proposal_id,
                 'user_name'     => $submission->full_name,
-                'department'    => $submission->department, // Memastikan 'department' ada di sini
+                'department'    => $submission->department,
                 'purpose_title' => $submission->purpose_title,
                 'branch'        => $submission->branch,
                 'period'        => Carbon::parse($submission->start_date)->format('d/m/Y') . ' - ' . Carbon::parse($submission->end_date)->format('d/m/Y'),
@@ -169,7 +160,6 @@ class InventoryController extends Controller
             ];
         });
 
-        // Kirim data inventory dan riwayatnya ke view
         return view('inventory.show', [
             'inventory'          => $inventory,
             'reservationHistory' => $reservationHistory

@@ -80,10 +80,8 @@
                         const filterForm = document.getElementById('filterForm');
                         const waitingForm = document.getElementById('waiting-filter-form');
 
-                        // Submit on dropdown change
                         document.getElementById('status_filter').addEventListener('change', () => filterForm.submit());
 
-                        // Submit on search input typing delay (0.8s)
                         const searchInput = document.getElementById('search');
                         let timeout = null;
                         searchInput.addEventListener('input', () => {
@@ -91,7 +89,6 @@
                             timeout = setTimeout(() => filterForm.submit(), 800);
                         });
 
-                        // Submit waiting checkbox immediately
                         document.getElementById('show_only_waiting').addEventListener('change', () => waitingForm.submit());
                     });
                 </script>

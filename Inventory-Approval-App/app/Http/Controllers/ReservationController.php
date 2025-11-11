@@ -13,7 +13,6 @@ class ReservationController extends Controller
 {
     public function index(Inventory $inventory, Request $request)
     {
-        // --- 1. PENGATURAN TANGGAL & FILTER ---
         $selectedDate = $request->input('date') ? Carbon::parse($request->input('date')) : Carbon::today();
         $activeOnlyToday = $request->input('active_today'); // Ambil status checkbox
 
@@ -22,13 +21,11 @@ class ReservationController extends Controller
         $endOfMonth = $selectedDate->copy()->endOfMonth();
         $dateRange = CarbonPeriod::create($startOfMonth, $endOfMonth);
 
-        // --- 2. LOGIKA RIWAYAT PEMINJAMAN (Sisi Kanan) ---
         $query = LendSubmission::where('inventory_id', $inventory->id)
             ->where('status', 'like', 'Accepted%')
             ->with('user')
             ->orderBy('start_date');
 
-        // Terapkan filter jika checkbox aktif
         if ($activeOnlyToday) {
             $query->whereDate('start_date', '<=', $selectedDate)
                   ->whereDate('end_date', '>=', $selectedDate);
@@ -49,7 +46,6 @@ class ReservationController extends Controller
             ];
         });
 
-        // --- 3. LOGIKA SLOT WAKTU (Sisi Kiri) ---
         $availableSlots = [];
         $startTime = Carbon::createFromTimeString('07:00:00');
         $endTime = Carbon::createFromTimeString('22:00:00');
@@ -61,7 +57,6 @@ class ReservationController extends Controller
             $slotEnd = $slotStart->copy()->addMinutes(30);
             $totalStock = $inventory->qty;
 
-            // Filter submission yang bentrok dengan tanggal dan slot jam ini
             $conflictingSubmissions = $activeSubmissions->filter(function ($sub) use ($selectedDate, $slotStart, $slotEnd) {
                 $submissionPeriod = CarbonPeriod::create($sub->start_date, $sub->end_date);
                 $timeOverlap = (Carbon::parse($sub->start_time)->lt($slotEnd)) && (Carbon::parse($sub->end_time)->gt($slotStart));
@@ -78,7 +73,6 @@ class ReservationController extends Controller
             ];
         }
 
-        // Kirim semua data yang sudah diproses ke view
         return view('inventory.reservation_index', compact(
             'inventory', 
             'selectedDate',

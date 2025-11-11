@@ -18,7 +18,7 @@ class HistoryController extends Controller
         $search = $request->input('search');
         $statusFilter = $request->input('status_filter');
 
-        // 1. Ambil data Peminjaman (Lend) dengan relasi ke Inventory
+        // Ambil data Peminjaman (Lend)
         $lendSubmissionsQuery = LendSubmission::with('inventory')->where('user_id', $userId);
         
         // Ambil data Pengadaan (Procure)
@@ -49,17 +49,17 @@ class HistoryController extends Controller
         $lendSubmissions = $lendSubmissionsQuery->get();
         $procureSubmissions = $procureSubmissionsQuery->get();
 
-        // 2. Modifikasi mapping untuk Lend agar mengambil nama dari relasi
+        // Mapping untuk Submission
         $mappedLend = $lendSubmissions->map(fn($item) => (object) [
             'id' => $item->proposal_id,
             'type' => 'Peminjaman',
-            'item' => $item->inventory?->nama, // <-- PERUBAHAN UTAMA
+            'item' => $item->inventory?->nama,
             'purpose' => $item->purpose_title,
             'date' => $item->created_at->format('d/m/Y'),
             'status' => $item->status
         ]);
         
-        // Mapping untuk Procure tetap sama
+        // Mapping untuk Procure
         $mappedProcure = $procureSubmissions->map(fn($item) => (object) [
             'id' => $item->proposal_id,
             'type' => 'Pengadaan',
@@ -101,7 +101,6 @@ class HistoryController extends Controller
         $submission = null;
         $type = null;
 
-        // Tentukan tipe submission berdasarkan prefix ID
         if (Str::startsWith($proposal_id, 'A-')) {
             $submission = LendSubmission::where('proposal_id', $proposal_id)->first();
             $type = 'Peminjaman';
@@ -110,13 +109,12 @@ class HistoryController extends Controller
             $type = 'Pengadaan';
         }
 
-        // Jika submission tidak ditemukan, atau user mencoba melihat milik orang lain, tampilkan 404
         if (!$submission || $submission->user_id !== Auth::id()) {
             abort(404);
         }
 
         // logika untuk menemukan $submission
-        $submission->load('timelines.user'); // Eager load relasi timeline dan user
+        $submission->load('timelines.user');
 
         return view('history.show', [
             'submission' => $submission
@@ -128,7 +126,7 @@ class HistoryController extends Controller
         $submission = null;
         $type = null;
 
-        // Logika untuk menemukan submission (sama seperti di method show)
+        // Logika untuk menemukan submission
         if (Str::startsWith($proposal_id, 'A-')) {
             $submission = LendSubmission::where('proposal_id', $proposal_id)->first();
             $type = 'Peminjaman';
@@ -137,7 +135,6 @@ class HistoryController extends Controller
             $type = 'Pengadaan';
         }
 
-        // Pastikan user hanya bisa print proposal miliknya yang sudah 'Accepted'
         if (!$submission || $submission->user_id !== Auth::id() || !Str::startsWith($submission->status, 'Accepted')) {
             abort(403, 'Unauthorized Action or Submission Not Accepted.');
         }
@@ -149,16 +146,16 @@ class HistoryController extends Controller
             'document_number' => date('Y').'/INV/'.str_replace('-', '/', $submission->proposal_id)
         ];
 
-        // Buat PDF dari view
+        // Buat PDF
         $pdf = Pdf::loadView('pdf.submission-document', $data);
 
-        // Tampilkan PDF di browser
+        // Tampilkan PDF
         return $pdf->stream('submission-' . $submission->proposal_id . '.pdf');
     }
 
     public function printDetail($proposal_id)
     {
-        // Logika untuk menemukan submission (sama seperti di method show)
+        // Logika untuk menemukan submission
         $submission = null; $type = null;
         if (Str::startsWith($proposal_id, 'A-')) {
             $submission = LendSubmission::where('proposal_id', $proposal_id)->first(); $type = 'Peminjaman';

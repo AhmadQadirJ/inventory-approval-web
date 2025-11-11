@@ -11,15 +11,15 @@
         }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            font-size: 9pt; /* Ukuran font dasar diperkecil */
+            font-size: 9pt;
             color: #333;
-            line-height: 1.2; /* Jarak antar baris dipersempit */
+            line-height: 1.2;
         }
         .container {
             width: 100%;
         }
         h1 {
-            font-size: 18pt; /* Ukuran judul utama diperkecil */
+            font-size: 18pt;
             font-weight: bold;
             text-align: center;
             border-bottom: 1px solid #333;
@@ -27,12 +27,12 @@
             margin-bottom: 25px;
         }
         h2 {
-            font-size: 10pt; /* Ukuran sub-judul diperkecil */
+            font-size: 10pt;
             font-weight: bold;
             color: #333;
             background-color: #f2f2f2;
             padding: 8px;
-            margin-top: 20px; /* Jarak antar section dikurangi */
+            margin-top: 20px;
             margin-bottom: 10px;
             border-left: 3px solid #e12d38;
         }
@@ -41,7 +41,7 @@
             border-collapse: collapse;
         }
         .detail-table td {
-            padding: 5px 0; /* Padding di dalam tabel dikurangi */
+            padding: 5px 0;
             vertical-align: top;
         }
         .detail-table td:first-child {
@@ -57,7 +57,7 @@
         .timeline-list li {
             position: relative;
             padding-left: 25px;
-            margin-bottom: 10px; /* Jarak antar item timeline dikurangi */
+            margin-bottom: 10px;
         }
         .timeline-list li::before {
             content: '';
@@ -67,16 +67,16 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background-color: #28a745; /* Hijau untuk selesai */
+            background-color: #28a745;
         }
         .timeline-list .in-progress::before {
-            background-color: #6c757d; /* Abu-abu untuk sedang berjalan */
+            background-color: #6c757d;
         }
         .timeline-status {
             font-weight: bold;
         }
         .timeline-meta {
-            font-size: 8pt; /* Ukuran font meta diperkecil */
+            font-size: 8pt;
             color: #666;
         }
         .timeline-notes {
@@ -84,7 +84,7 @@
             color: #444;
             border-left: 2px solid #ddd;
             padding-left: 10px;
-            margin-top: 4px; /* Jarak notes dari status dikurangi */
+            margin-top: 4px;
             font-style: italic;
         }
     </style>

@@ -25,7 +25,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'profile_photo_path', // Ensure this line is present
+        'profile_photo_path',
     ];
 
     /**
